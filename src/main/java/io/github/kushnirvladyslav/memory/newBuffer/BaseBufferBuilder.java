@@ -18,12 +18,14 @@ package io.github.kushnirvladyslav.memory.newBuffer;
 
 import io.github.kushnirvladyslav.OpenClContext;
 
+import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
+import io.github.kushnirvladyslav.memory.data.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B extends BaseBuffer>{
+public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B extends BaseBuffer>{
     private static final Logger logger = LoggerFactory.getLogger(BaseBuffer.class);
 
     private static final AtomicInteger nameCounter = new AtomicInteger(0);
@@ -49,9 +51,9 @@ public class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B extends Bas
         if (clContext == null) {
             String message;
             if (name != null) {
-                message = String.format("OpenCL context cannot be null for building buffer '%s'", name);
+                message = "OpenCL context cannot be null for building buffer '%s'" + name;
             } else {
-                message = String.format("OpenCL context cannot be null for building buffer");
+                message = "OpenCL context cannot be null for building buffer";
             }
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -61,13 +63,13 @@ public class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B extends Bas
         return (T) this;
     }
 
-    public T withDataClass(Class<T> newClass) {
+    public T withDataClass(Class<? extends Data> newClass) {
         if (newClass == null) {
             String message;
             if (name != null) {
-                message = String.format("Data class cannot be null for building buffer '%s'", name);
+                message ="Data class cannot be null for building buffer '%s'" + name;
             } else {
-                message = String.format("Data class cannot be null for building buffer");
+                message = "Data class cannot be null for building buffer";
             }
 
             logger.error(message);
@@ -78,4 +80,34 @@ public class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B extends Bas
         return (T) this;
     }
 
+    protected String getName () {
+        if (name == null) {
+            return "UnnamedB buffer " + nameCounter.getAndIncrement();
+        } else {
+            String tempName = name;
+            name = null;
+            return tempName;
+        }
+    }
+
+    protected OpenClContext getContext(){
+        if (context == null) {
+            String message = "OpenCL context cannot be null for building buffer";
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+        return context;
+    }
+
+    protected Data getDataObject(){
+        try {
+            return (Data) clazz.getConstructor().newInstance();
+        } catch (Exception e) {
+            String message = "Failed to instantiate data class: " + e.getMessage();
+            logger.error(message);
+            throw new BufferInitializationException(message);
+        }
+    }
+
+    public abstract B build();
 }

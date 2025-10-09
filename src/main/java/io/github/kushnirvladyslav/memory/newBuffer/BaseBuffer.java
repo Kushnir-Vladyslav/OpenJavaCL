@@ -17,6 +17,7 @@
 package io.github.kushnirvladyslav.memory.newBuffer;
 
 import io.github.kushnirvladyslav.OpenClContext;
+import io.github.kushnirvladyslav.exceptions.BufferDestructionException;
 import io.github.kushnirvladyslav.memory.data.Data;
 import io.github.kushnirvladyslav.util.StatusCL;
 import org.slf4j.Logger;
@@ -31,11 +32,27 @@ public abstract class BaseBuffer {
     protected StatusCL status;
 
     protected OpenClContext context;
-    protected Class<?> clazz;
+    protected Data dataObject;
 
     protected BaseBuffer(BaseBufferBuilder builder) {
+        this.name = builder.getName();
+        this.context = builder.getContext();
+        this.dataObject = builder.getDataObject();
 
+        this.status = StatusCL.RUNNING;
     }
 
+    public void destroy () {
+        if(status == StatusCL.CLOSED) {
+            throw new BufferDestructionException("Buffer \"" + name + "\" has been closed.");
+        }
 
+        context.getBufferManager().remove(this);
+
+        name = null;
+        context = null;
+        dataObject = null;
+
+        status = StatusCL.CLOSED;
+    }
 }
