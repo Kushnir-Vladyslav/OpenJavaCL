@@ -20,19 +20,18 @@ import io.github.kushnirvladyslav.OpenClContext;
 import io.github.kushnirvladyslav.exceptions.BufferDestructionException;
 import io.github.kushnirvladyslav.memory.data.Data;
 import io.github.kushnirvladyslav.util.StatusCL;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
 
 public abstract class BaseBuffer {
     private static final Logger logger = LoggerFactory.getLogger(BaseBuffer.class);
 
-    protected String name;
+    protected final String name;
     protected StatusCL status;
 
-    protected OpenClContext context;
-    protected Data dataObject;
+    protected final OpenClContext context;
+    protected final Data dataObject;
 
     protected BaseBuffer(BaseBufferBuilder builder) {
         this.name = builder.getName();
@@ -42,17 +41,68 @@ public abstract class BaseBuffer {
         this.status = StatusCL.RUNNING;
     }
 
-    public void destroy () {
+    public String getName() {
+        checkNotClosed();
+        return name;
+    }
+
+    public boolean isClosed() {
+        return status == StatusCL.CLOSED;
+    }
+
+    public OpenClContext getContext() {
+        checkNotClosed();
+        return context;
+    }
+
+    public boolean inSameContext(OpenClContext context) {
+        checkNotClosed();
+        return this.context.equals(context);
+    }
+
+    public Class<? extends Data> getDataClass(){
+        checkNotClosed();
+        return dataObject.getClass();
+    }
+
+    protected void checkNotClosed() {
+        if (isClosed()) {
+            throw new BufferDestructionException(
+                    String.format("Buffer '%s' has been closed and cannot be used", name));
+        }
+    }
+
+    public final void destroy () {
         if(status == StatusCL.CLOSED) {
             throw new BufferDestructionException("Buffer \"" + name + "\" has been closed.");
         }
 
-        context.getBufferManager().remove(this);
-
-        name = null;
-        context = null;
-        dataObject = null;
+        performDestroy();
+        unregisterFromContext();
 
         status = StatusCL.CLOSED;
+    }
+
+    protected void performDestroy() {
+    }
+
+    private void  unregisterFromContext() {
+        try {
+            if (context != null && !context.isClosed() && context.getBufferManager() != null) {
+                context.getBufferManager().remove(this);
+                logger.debug("Unregistered buffer '{}' from context", name);
+            }
+        } catch (Exception e) {
+            logger.error("Error unregistering buffer '{}' from context", name, e);
+        }
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%s[name='%s', status=%s, dataClass=%s]",
+                getClass().getSimpleName(),
+                name,
+                status,
+                dataObject.getClass().getSimpleName());
     }
 }

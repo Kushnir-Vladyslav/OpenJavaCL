@@ -33,7 +33,7 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
     private String name;
 
     private OpenClContext context;
-    private Class<?> clazz;
+    private Class<?> dataClass;
 
     public T withName(String name) {
         if (name == null || name.trim().isEmpty()) {
@@ -49,15 +49,20 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
 
     public T withOpenClContext(OpenClContext clContext) {
         if (clContext == null) {
-            String message;
-            if (name != null) {
-                message = "OpenCL context cannot be null for building buffer '%s'" + name;
-            } else {
-                message = "OpenCL context cannot be null for building buffer";
-            }
+            String message = name != null
+                    ? String.format("OpenCL context cannot be null for building buffer '%s'", name)
+                    : "OpenCL context cannot be null for building buffer";
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
+        if (clContext.isClosed()) {
+            String message = name != null
+                    ? String.format("OpenCL context is closed for building buffer '%s'", name)
+                    : "OpenCL context is closed for building buffer";
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
         this.context = clContext;
 
         return (T) this;
@@ -65,24 +70,20 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
 
     public T withDataClass(Class<? extends Data> newClass) {
         if (newClass == null) {
-            String message;
-            if (name != null) {
-                message ="Data class cannot be null for building buffer '%s'" + name;
-            } else {
-                message = "Data class cannot be null for building buffer";
-            }
-
+            String message = name != null
+                    ? String.format("Data class cannot be null for building buffer '%s'", name)
+                    : "Data class cannot be null for building buffer";
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
 
-        this.clazz = newClass;
+        this.dataClass = newClass;
         return (T) this;
     }
 
     protected String getName () {
         if (name == null) {
-            return "UnnamedB buffer " + nameCounter.getAndIncrement();
+            return "Unnamed buffer " + nameCounter.getAndIncrement();
         } else {
             String tempName = name;
             name = null;
@@ -94,6 +95,11 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
         if (context == null) {
             String message = "OpenCL context cannot be null for building buffer";
             logger.error(message);
+            throw new BufferInitializationException(message);
+        }
+        if (context.isClosed()) {
+            String message = "OpenCL context is closed for building buffer";
+            logger.error(message);
             throw new IllegalArgumentException(message);
         }
         return context;
@@ -101,10 +107,29 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
 
     protected Data getDataObject(){
         try {
-            return (Data) clazz.getConstructor().newInstance();
+            return (Data) dataClass.getConstructor().newInstance();
         } catch (Exception e) {
             String message = "Failed to instantiate data class: " + e.getMessage();
             logger.error(message);
+            throw new BufferInitializationException(message);
+        }
+    }
+
+    protected void registerBuffer(B buffer) {
+        try {
+            context.getBufferManager().registerBuffer(buffer);
+        } catch (Exception e) {
+            String message = String.format("Failed to instantiate data class %s: %s",
+                    dataClass != null ? dataClass.getSimpleName() : "null",
+                    e.getMessage());
+            logger.error(message);
+
+            try {
+                buffer.destroy();
+            } catch (Exception cleanupEx) {
+                logger.error("Failed to cleanup buffer after registration failure", cleanupEx);
+            }
+
             throw new BufferInitializationException(message);
         }
     }

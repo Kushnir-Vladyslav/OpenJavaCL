@@ -235,7 +235,7 @@ public abstract class AbstractBuffer {
 
     private void registerWithContext() {
         try {
-            context.getBufferManager().registerBuffer(this);
+//            context.getBufferManager().registerBuffer(this);
         } catch (Exception e) {
             throwInitError("Failed to register buffer with context: " + e.getMessage());
         }
@@ -381,7 +381,7 @@ public abstract class AbstractBuffer {
 
         if (context != null && context.getBufferManager() != null) {
             try {
-                context.getBufferManager().remove(this);
+//                context.getBufferManager().remove(this);
             } catch (Exception e) {
                 logger.error("Error removing buffer '{}' from context", bufferName, e);
             }

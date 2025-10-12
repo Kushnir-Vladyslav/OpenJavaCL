@@ -53,7 +53,7 @@ public class GlobalDynamicBuffer
 
     @Override
     public AbstractBuffer withInitSize(int newSize) {
-        initCheck();
+//        initCheck();
         if (newSize < getMinCapacity()) {
             String message = String.format("Buffer size must be positive, got %d for buffer '%s'", newSize, getBufferName());
             logger.error(message);

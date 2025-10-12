@@ -77,7 +77,7 @@ public abstract class KernelAwareBuffer
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
-        bindKernel(kernel.getKernel(), argIndex);
+        bindKernel(kernel.getClKernel(), argIndex);
     }
 
     /**
@@ -129,7 +129,7 @@ public abstract class KernelAwareBuffer
             logger.warn("Attempted to unbind from null kernel for buffer '{}'", getBufferName());
             return false;
         }
-        return unbindKernel(kernel.getKernel());
+        return unbindKernel(kernel.getClKernel());
     }
 
     /**
@@ -163,7 +163,7 @@ public abstract class KernelAwareBuffer
         if (kernel == null) {
             return -1;
         }
-        return getKernelArgIndex(kernel.getKernel());
+        return getKernelArgIndex(kernel.getClKernel());
     }
 
     /**
@@ -186,7 +186,7 @@ public abstract class KernelAwareBuffer
         if (kernel == null) {
             return false;
         }
-        return isBoundToKernel(kernel.getKernel());
+        return isBoundToKernel(kernel.getClKernel());
     }
 
     /**

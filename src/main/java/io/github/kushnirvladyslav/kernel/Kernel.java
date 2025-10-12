@@ -115,7 +115,7 @@ public abstract class Kernel {
      *
      * @return Ідентифікатор ядра.
      */
-    public long getKernel() {
+    public long getClKernel() {
         return kernel;
     }
 
