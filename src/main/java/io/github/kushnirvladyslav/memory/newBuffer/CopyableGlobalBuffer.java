@@ -1,0 +1,186 @@
+/*
+ * Copyright 2025 Kushnir Vladyslav
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.github.kushnirvladyslav.memory.newBuffer;
+
+import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
+import io.github.kushnirvladyslav.exceptions.BufferOperationException;
+import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
+import org.lwjgl.PointerBuffer;
+import org.lwjgl.opencl.CL10;
+import org.lwjgl.system.MemoryStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public abstract class CopyableGlobalBuffer
+        extends GlobalBuffer {
+    private static final Logger logger = LoggerFactory.getLogger(CopyableGlobalBuffer.class);
+
+    protected CopyableGlobalBuffer(CopyableGlobalBufferBuilder<?, ?> builder) {
+        super(builder);
+    }
+
+    public long copyFrom (GlobalBuffer src){
+        return copyFrom(src, null);
+    }
+
+    public long copyFrom (GlobalBuffer src, long[] events){
+        if (src == null || src.isClosed()) {
+            String message = "Buffer, source not initialized or already closed.";
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        return copyFrom(src, src.size, events);
+    }
+
+    public long copyFrom (GlobalBuffer src, int size){
+        return copyFrom(src, 0, 0, size, null);
+    }
+
+    public long copyFrom (GlobalBuffer src, int size, long[] events){
+        return copyFrom(src, 0, 0, size, events);
+    }
+
+    public long copyFrom (GlobalBuffer src, int srcOffset, int dstOffset, int size){
+        return copyFromBufferToBuffer(src, this, srcOffset, dstOffset, size, null);
+    }
+
+    public long copyFrom (GlobalBuffer src, int srcOffset, int dstOffset, int size, long[] events){
+        return copyFromBufferToBuffer(src, this, srcOffset, dstOffset, size, events);
+    }
+
+    public long copyTo (GlobalBuffer dst){
+        return copyTo(dst, null);
+    }
+
+    public long copyTo (GlobalBuffer dst, long[] events){
+        if (this.isClosed()) {
+            String message = "Buffer, source not initialized or already closed.";
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        return copyTo(dst, this.size, events);
+    }
+
+    public long copyTo (GlobalBuffer dst, int size){
+        return copyTo(dst, 0, 0, size, null);
+    }
+
+    public long copyTo (GlobalBuffer dst, int size, long[] events){
+        return copyTo(dst, 0, 0, size, events);
+    }
+
+    public long copyTo (GlobalBuffer dst, int srcOffset, int dstOffset, int size){
+        return copyFromBufferToBuffer(this, dst, srcOffset, dstOffset, size, null);
+    }
+
+    public long copyTo (GlobalBuffer dst, int srcOffset, int dstOffset, int size, long[] events){
+        return copyFromBufferToBuffer(this, dst, srcOffset, dstOffset, size, events);
+    }
+
+    protected long copyFromBufferToBuffer(
+            GlobalBuffer src, GlobalBuffer dst,
+            int srcOffset, int dstOffset,
+            int size, long[] events) {
+
+        if (src == null || src.isClosed()) {
+            String message = "Buffer, source not initialized or already closed.";
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        if (dst == null || dst.isClosed()) {
+            String message = "Buffer, destination not initialized or already closed.";
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        if (!src.inSameContext(dst.context)){
+            String message = "Buffers are created in different OpenCl contexts.";
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        if (!src.dataObject.getClass().equals(dst.dataObject.getClass())){
+            String message = String.format(
+                    "Buffer data types mismatch: source is %s, destination is %s. " +
+                            "This will likely cause data corruption or undefined behavior.",
+                    src.dataObject.getClass().getSimpleName(),
+                    dst.dataObject.getClass().getSimpleName()
+            );
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        if (size < 0 || srcOffset < 0 || dstOffset < 0) {
+            String message = "Size and offsets must be non-negative.";
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        if (src.size < srcOffset + size) {
+            String message = "Attempt to read outside the source buffer.";
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        if (dst.size < dstOffset + size) {
+            if(dst instanceof Dynamical){
+                Dynamical dynamical = (Dynamical) dst;
+                if (events != null && events.length != 0) {
+                    dynamical.resize(dstOffset + size, events);
+                } else {
+                    dynamical.resize(dstOffset + size);
+                }
+            } else {
+                String message = "Attempt to write outside the destination buffer.";
+                logger.error(message);
+                throw new BufferOperationException(message);
+            }
+        }
+
+        try(MemoryStack stack = MemoryStack.stackPush()){
+            PointerBuffer eventList = events != null && events.length != 0 ?
+                    stack.mallocPointer(events.length).put(events).rewind() : null;
+            PointerBuffer thisEvent = stack.mallocPointer(1);
+
+            int dataSize = src.dataObject.getSizeStruct();
+
+            int errorCode = CL10.clEnqueueCopyBuffer(
+                    src.context.getCommandQueue(),
+                    src.clMem,
+                    dst.clMem,
+                    (long) srcOffset * dataSize,
+                    (long) dstOffset * dataSize,
+                    (long) size * dataSize,
+                    eventList,
+                    thisEvent.rewind()
+            );
+
+            if (!OpenCLErrorUtils.isSuccess(errorCode)) {
+                String message = String.format(
+                        "Copying from buffer '%S' to '%s' ended with an error: %s",
+                        src.name, dst.name, OpenCLErrorUtils.getCLErrorString(errorCode));
+                logger.error(message);
+                throw new BufferOperationException(message);
+            }
+
+            return thisEvent.get(0);
+        }
+    }
+}

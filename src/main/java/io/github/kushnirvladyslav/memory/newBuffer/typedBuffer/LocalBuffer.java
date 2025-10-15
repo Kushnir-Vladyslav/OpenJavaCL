@@ -49,7 +49,7 @@ public class LocalBuffer
             throw new IllegalArgumentException(message);
         }
         this.size = newSize;
-        rewriteAllKernels();
+        rebindAllKernels();
     }
 
     @Override

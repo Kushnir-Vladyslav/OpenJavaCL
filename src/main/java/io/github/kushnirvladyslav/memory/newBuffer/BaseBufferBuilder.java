@@ -35,6 +35,7 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
     private OpenClContext context;
     private Class<?> dataClass;
 
+    @SuppressWarnings("unchecked")
     public T withName(String name) {
         if (name == null || name.trim().isEmpty()) {
             String message = "Buffer name cannot be null or empty";
@@ -47,6 +48,7 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
         return (T) this;
     }
 
+    @SuppressWarnings("unchecked")
     public T withOpenClContext(OpenClContext clContext) {
         if (clContext == null) {
             String message = name != null
@@ -68,6 +70,7 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
         return (T) this;
     }
 
+    @SuppressWarnings("unchecked")
     public T withDataClass(Class<? extends Data> newClass) {
         if (newClass == null) {
             String message = name != null

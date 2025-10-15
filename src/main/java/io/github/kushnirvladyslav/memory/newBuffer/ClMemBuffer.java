@@ -18,7 +18,9 @@ package io.github.kushnirvladyslav.memory.newBuffer;
 
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
+import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL10;
+import org.lwjgl.system.MemoryStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,15 +28,15 @@ public abstract class ClMemBuffer
         extends KernelAwareBuffer {
     private static final Logger logger = LoggerFactory.getLogger(ClMemBuffer.class);
 
-
     protected long clMem;
 
-    protected ClMemBuffer(ClMemBufferBuilder builder) {
+    protected ClMemBuffer(ClMemBufferBuilder<?, ?> builder) {
         super(builder);
+
         clMem = 0;
     }
 
-    protected abstract void createClMem();
+    protected abstract long createClMem();
 
     @Override
     protected void setKernelArg (long targetKernel, int argIndex){
@@ -45,18 +47,22 @@ public abstract class ClMemBuffer
             throw new IllegalStateException(message);
         }
 
-        int errorCode = CL10.clSetKernelArg(
-                targetKernel,
-                argIndex,
-                clMem
-        );
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            PointerBuffer transmitter = stack.mallocPointer(1);
 
-        if (!OpenCLErrorUtils.isSuccess(errorCode)) {
-            String message = String.format(
-                    "OpenCL error \"'%s'\" when setting kernel arg for buffer '%s' at index %d",
-                    OpenCLErrorUtils.getCLErrorString(errorCode), name, argIndex);
-            logger.error(message);
-            throw new BufferOperationException(message);
+            int errorCode = CL10.clSetKernelArg(
+                    targetKernel,
+                    argIndex,
+                    transmitter.put(0, clMem).rewind()
+            );
+
+            if (!OpenCLErrorUtils.isSuccess(errorCode)) {
+                String message = String.format(
+                        "OpenCL error \"'%s'\" when setting kernel arg for buffer '%s' at index %d",
+                        OpenCLErrorUtils.getCLErrorString(errorCode), name, argIndex);
+                logger.error(message);
+                throw new BufferOperationException(message);
+            }
         }
     }
 

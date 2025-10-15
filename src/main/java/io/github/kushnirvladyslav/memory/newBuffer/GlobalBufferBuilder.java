@@ -31,6 +31,7 @@ public abstract class GlobalBufferBuilder
 
     private boolean stagingBuffer = false;
 
+    @SuppressWarnings("unchecked")
     public T withDeviceMemoryAccess(DeviceMemoryAccess deviceMemoryAccess) {
         if (deviceMemoryAccess == null) {
             String message =  "DeviceMemoryAccess cannot be null for building buffer";
@@ -43,6 +44,7 @@ public abstract class GlobalBufferBuilder
         return (T) this;
     }
 
+    @SuppressWarnings("unchecked")
     public T withCapacity(int capacity) {
         if(capacity < 1) {
             String message = String.format(
@@ -54,6 +56,7 @@ public abstract class GlobalBufferBuilder
         return (T) this;
     }
 
+    @SuppressWarnings("unchecked")
     public T withStagingBuffer(boolean stagingBuffer){
         this.stagingBuffer = stagingBuffer;
         return (T) this;

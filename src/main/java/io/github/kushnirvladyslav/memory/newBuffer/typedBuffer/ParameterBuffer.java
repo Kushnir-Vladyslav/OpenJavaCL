@@ -69,7 +69,7 @@ public class ParameterBuffer
             throw new IllegalStateException(message, e);
         }
 
-        rewriteAllKernels();
+        rebindAllKernels();
     }
 
     @Override

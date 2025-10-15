@@ -29,7 +29,7 @@ public abstract class KernelAwareBuffer extends BaseBuffer {
 
     protected final Map<Long, Integer> kernelBindings;
 
-    protected KernelAwareBuffer(BaseBufferBuilder builder) {
+    protected KernelAwareBuffer(BaseBufferBuilder<?, ?> builder) {
         super(builder);
 
         kernelBindings = new ConcurrentHashMap<>();
@@ -83,7 +83,7 @@ public abstract class KernelAwareBuffer extends BaseBuffer {
 
     protected abstract void setKernelArg (long targetKernel, int argIndex);
 
-    protected void rewriteAllKernels(){
+    protected void rebindAllKernels(){
         checkNotClosed();
 
         if (kernelBindings.isEmpty()) {

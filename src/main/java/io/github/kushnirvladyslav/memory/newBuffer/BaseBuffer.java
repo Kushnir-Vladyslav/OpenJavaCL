@@ -33,7 +33,7 @@ public abstract class BaseBuffer implements AutoCloseable {
     protected final OpenClContext context;
     protected final Data dataObject;
 
-    protected BaseBuffer(BaseBufferBuilder builder) {
+    protected BaseBuffer(BaseBufferBuilder<?, ?> builder) {
         this.name = builder.getName();
         this.context = builder.getContext();
         this.dataObject = builder.getDataObject();
