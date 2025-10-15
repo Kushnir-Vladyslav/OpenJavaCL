@@ -24,7 +24,7 @@ import io.github.kushnirvladyslav.util.StatusCL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class BaseBuffer {
+public abstract class BaseBuffer implements AutoCloseable {
     private static final Logger logger = LoggerFactory.getLogger(BaseBuffer.class);
 
     protected final String name;
@@ -105,4 +105,10 @@ public abstract class BaseBuffer {
                 status,
                 dataObject.getClass().getSimpleName());
     }
+
+    @Override
+    public void close(){
+        destroy();
+    }
+
 }
