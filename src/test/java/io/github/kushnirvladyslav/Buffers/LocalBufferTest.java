@@ -40,7 +40,7 @@ import static org.lwjgl.opencl.CL10.*;
 
 
 public class LocalBufferTest {
-    private OpenClContext context;
+    private ClContext context;
     private Device device = OpenCL.getPlatforms().get(0).getBestDevice();
     private LocalBufferBuilder builder;
 

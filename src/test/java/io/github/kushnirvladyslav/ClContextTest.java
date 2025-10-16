@@ -9,10 +9,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * Tests for the OpenClContext class functionality.
+ * Tests for the ClContext class functionality.
  */
-class OpenClContextTest {
-    private OpenClContext context;
+class ClContextTest {
+    private ClContext context;
     private Platform platform;
     private Device device;
 

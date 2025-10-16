@@ -17,10 +17,10 @@
 package io.github.kushnirvladyslav.memory.buffer.typedBuffers;
 
 
+import io.github.kushnirvladyslav.ClContext;
 import io.github.kushnirvladyslav.memory.buffer.KernelAwareBuffer;
 import io.github.kushnirvladyslav.memory.data.ConvertToByteBuffer;
 import io.github.kushnirvladyslav.memory.data.Data;
-import io.github.kushnirvladyslav.OpenClContext;
 import org.lwjgl.opencl.CL10;
 import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
@@ -65,7 +65,7 @@ public class ParameterBuffer
      * @param context OpenCL context
      * @throws IllegalArgumentException if parameter is null
      */
-    public void setup (Class<Data> dataClass, OpenClContext context) {
+    public void setup (Class<Data> dataClass, ClContext context) {
         logger.debug("Setting up ParameterBuffer '{}' with parameter of type {}",
                 getBufferName(), dataClass.getSimpleName());
 
@@ -82,7 +82,7 @@ public class ParameterBuffer
      * @param context OpenCL context
      * @throws IllegalArgumentException if parameter is null
      */
-    public void setup (String bufferName, Class<Data> dataClass, OpenClContext context) {
+    public void setup (String bufferName, Class<Data> dataClass, ClContext context) {
         logger.debug("Setting up ParameterBuffer '{}' with parameter of type {}",
                 bufferName, dataClass.getSimpleName());
 

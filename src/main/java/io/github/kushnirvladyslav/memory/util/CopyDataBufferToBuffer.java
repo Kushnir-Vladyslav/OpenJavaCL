@@ -16,8 +16,8 @@
 
 package io.github.kushnirvladyslav.memory.util;
 
+import io.github.kushnirvladyslav.ClContext;
 import io.github.kushnirvladyslav.memory.buffer.AbstractGlobalBuffer;
-import io.github.kushnirvladyslav.OpenClContext;
 import org.lwjgl.opencl.CL10;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,21 +35,21 @@ public class CopyDataBufferToBuffer {
     /**
      * Copies data between two OpenCL buffers.
      *
-     * @param openClContext the OpenCL context
+     * @param clContext the OpenCL context
      * @param src the source buffer
      * @param dst the destination buffer
      * @param size the number of bytes to copy
      * @return OpenCL error code
      * @throws IllegalArgumentException if any parameters are invalid
      */
-    public static int copyData (OpenClContext openClContext, AbstractGlobalBuffer src, AbstractGlobalBuffer dst, long size) {
-        return copyData(openClContext, src, dst, 0, 0, size);
+    public static int copyData (ClContext clContext, AbstractGlobalBuffer src, AbstractGlobalBuffer dst, long size) {
+        return copyData(clContext, src, dst, 0, 0, size);
     }
 
     /**
      * Copies data between two OpenCL buffers with offset support.
      *
-     * @param openClContext the OpenCL context
+     * @param clContext the OpenCL context
      * @param src the source buffer
      * @param dst the destination buffer
      * @param srcOffset offset in the source buffer
@@ -58,8 +58,8 @@ public class CopyDataBufferToBuffer {
      * @return OpenCL error code
      * @throws IllegalArgumentException if any parameters are invalid
      */
-    public static int copyData (OpenClContext openClContext, AbstractGlobalBuffer src, AbstractGlobalBuffer dst, long srcOffset, long dstOffset, long size) {
-        if (openClContext == null || src == null || dst == null) {
+    public static int copyData (ClContext clContext, AbstractGlobalBuffer src, AbstractGlobalBuffer dst, long srcOffset, long dstOffset, long size) {
+        if (clContext == null || src == null || dst == null) {
             String message = "OpenCL context, source buffer, and destination buffer cannot be null";
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -87,7 +87,7 @@ public class CopyDataBufferToBuffer {
                 size, src.getBufferName(), dst.getBufferName(), srcOffset, dstOffset);
 
         return CL10.clEnqueueCopyBuffer(
-                openClContext.getCommandQueue(),
+                clContext.getCommandQueue(),
                 src.getClBuffer(),
                 dst.getClBuffer(),
                 srcOffset,
@@ -101,21 +101,21 @@ public class CopyDataBufferToBuffer {
     /**
      * Copies data between two OpenCL memory objects using their handles.
      *
-     * @param openClContext the OpenCL context
+     * @param clContext the OpenCL context
      * @param src source memory object handle
      * @param dst destination memory object handle
      * @param size the number of bytes to copy
      * @return OpenCL error code
      * @throws IllegalArgumentException if any parameters are invalid
      */
-    public static int copyData (OpenClContext openClContext, long src, long dst, int size) {
-        return copyData(openClContext, src, dst, 0, 0, size);
+    public static int copyData (ClContext clContext, long src, long dst, int size) {
+        return copyData(clContext, src, dst, 0, 0, size);
     }
 
     /**
      * Copies data between two OpenCL memory objects using their handles with offset support.
      *
-     * @param openClContext the OpenCL context
+     * @param clContext the OpenCL context
      * @param src source memory object handle
      * @param dst destination memory object handle
      * @param srcOffset offset in the source buffer
@@ -124,8 +124,8 @@ public class CopyDataBufferToBuffer {
      * @return OpenCL error code
      * @throws IllegalArgumentException if any parameters are invalid
      */
-    public static int copyData (OpenClContext openClContext, long src, long dst, int srcOffset, long dstOffset, long size) {
-        if (openClContext == null) {
+    public static int copyData (ClContext clContext, long src, long dst, int srcOffset, long dstOffset, long size) {
+        if (clContext == null) {
             String message = "OpenCL context cannot be null";
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -154,7 +154,7 @@ public class CopyDataBufferToBuffer {
                 size, src, dst, srcOffset, dstOffset);
 
         return CL10.clEnqueueCopyBuffer(
-                openClContext.getCommandQueue(),
+                clContext.getCommandQueue(),
                 src,
                 dst,
                 srcOffset,

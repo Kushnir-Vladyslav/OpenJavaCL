@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.lwjgl.opencl.CL10.*;
 
 public class ParameterBufferTest {
-    private OpenClContext context;
+    private ClContext context;
     private Device device = OpenCL.getPlatforms().get(0).getBestDevice();
 
     private ParameterBufferBuilder builder;

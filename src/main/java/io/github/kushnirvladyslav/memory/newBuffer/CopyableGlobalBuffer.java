@@ -16,12 +16,14 @@
 
 package io.github.kushnirvladyslav.memory.newBuffer;
 
-import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
+import io.github.kushnirvladyslav.util.clEvent.ClEvent;
+import io.github.kushnirvladyslav.util.clEvent.ClEventList;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL10;
 import org.lwjgl.system.MemoryStack;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,11 +35,11 @@ public abstract class CopyableGlobalBuffer
         super(builder);
     }
 
-    public long copyFrom (GlobalBuffer src){
+    public ClEvent copyFrom (GlobalBuffer src){
         return copyFrom(src, null);
     }
 
-    public long copyFrom (GlobalBuffer src, long[] events){
+    public ClEvent copyFrom (GlobalBuffer src, ClEventList events){
         if (src == null || src.isClosed()) {
             String message = "Buffer, source not initialized or already closed.";
             logger.error(message);
@@ -47,27 +49,27 @@ public abstract class CopyableGlobalBuffer
         return copyFrom(src, src.size, events);
     }
 
-    public long copyFrom (GlobalBuffer src, int size){
+    public ClEvent copyFrom (GlobalBuffer src, int size){
         return copyFrom(src, 0, 0, size, null);
     }
 
-    public long copyFrom (GlobalBuffer src, int size, long[] events){
+    public ClEvent copyFrom (GlobalBuffer src, int size, ClEventList events){
         return copyFrom(src, 0, 0, size, events);
     }
 
-    public long copyFrom (GlobalBuffer src, int srcOffset, int dstOffset, int size){
+    public ClEvent copyFrom (GlobalBuffer src, int srcOffset, int dstOffset, int size){
         return copyFromBufferToBuffer(src, this, srcOffset, dstOffset, size, null);
     }
 
-    public long copyFrom (GlobalBuffer src, int srcOffset, int dstOffset, int size, long[] events){
+    public ClEvent copyFrom (GlobalBuffer src, int srcOffset, int dstOffset, int size, ClEventList events){
         return copyFromBufferToBuffer(src, this, srcOffset, dstOffset, size, events);
     }
 
-    public long copyTo (GlobalBuffer dst){
+    public ClEvent copyTo (GlobalBuffer dst){
         return copyTo(dst, null);
     }
 
-    public long copyTo (GlobalBuffer dst, long[] events){
+    public ClEvent copyTo (GlobalBuffer dst, ClEventList events){
         if (this.isClosed()) {
             String message = "Buffer, source not initialized or already closed.";
             logger.error(message);
@@ -77,26 +79,26 @@ public abstract class CopyableGlobalBuffer
         return copyTo(dst, this.size, events);
     }
 
-    public long copyTo (GlobalBuffer dst, int size){
+    public ClEvent copyTo (GlobalBuffer dst, int size){
         return copyTo(dst, 0, 0, size, null);
     }
 
-    public long copyTo (GlobalBuffer dst, int size, long[] events){
+    public ClEvent copyTo (GlobalBuffer dst, int size, ClEventList events){
         return copyTo(dst, 0, 0, size, events);
     }
 
-    public long copyTo (GlobalBuffer dst, int srcOffset, int dstOffset, int size){
+    public ClEvent copyTo (GlobalBuffer dst, int srcOffset, int dstOffset, int size){
         return copyFromBufferToBuffer(this, dst, srcOffset, dstOffset, size, null);
     }
 
-    public long copyTo (GlobalBuffer dst, int srcOffset, int dstOffset, int size, long[] events){
+    public ClEvent copyTo (GlobalBuffer dst, int srcOffset, int dstOffset, int size, ClEventList events){
         return copyFromBufferToBuffer(this, dst, srcOffset, dstOffset, size, events);
     }
 
-    protected long copyFromBufferToBuffer(
+    protected ClEvent copyFromBufferToBuffer(
             GlobalBuffer src, GlobalBuffer dst,
             int srcOffset, int dstOffset,
-            int size, long[] events) {
+            int size, ClEventList events) {
 
         if (src == null || src.isClosed()) {
             String message = "Buffer, source not initialized or already closed.";
@@ -142,7 +144,7 @@ public abstract class CopyableGlobalBuffer
         if (dst.size < dstOffset + size) {
             if(dst instanceof Dynamical){
                 Dynamical dynamical = (Dynamical) dst;
-                if (events != null && events.length != 0) {
+                if (events != null) {
                     dynamical.resize(dstOffset + size, events);
                 } else {
                     dynamical.resize(dstOffset + size);
@@ -155,8 +157,6 @@ public abstract class CopyableGlobalBuffer
         }
 
         try(MemoryStack stack = MemoryStack.stackPush()){
-            PointerBuffer eventList = events != null && events.length != 0 ?
-                    stack.mallocPointer(events.length).put(events).rewind() : null;
             PointerBuffer thisEvent = stack.mallocPointer(1);
 
             int dataSize = src.dataObject.getSizeStruct();
@@ -168,9 +168,11 @@ public abstract class CopyableGlobalBuffer
                     (long) srcOffset * dataSize,
                     (long) dstOffset * dataSize,
                     (long) size * dataSize,
-                    eventList,
+                    events.getEventList(stack),
                     thisEvent.rewind()
             );
+
+            events.releaseEvents();
 
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
                 String message = String.format(
@@ -180,7 +182,7 @@ public abstract class CopyableGlobalBuffer
                 throw new BufferOperationException(message);
             }
 
-            return thisEvent.get(0);
+            return new ClEvent(thisEvent.get(0));
         }
     }
 }

@@ -30,7 +30,7 @@ class ContextBuilderTest {
 
     @Test
     void createContext_WithDefaultSettings() {
-        OpenClContext context = builder
+        ClContext context = builder
                 .withDevice(device)
                 .create();
 
@@ -41,7 +41,7 @@ class ContextBuilderTest {
 
     @Test
     void createContext_WithOutOfOrder() {
-        OpenClContext context = builder
+        ClContext context = builder
                 .withDevice(device)
                 .withOutOfOrderQueue(true)
                 .create();
@@ -51,7 +51,7 @@ class ContextBuilderTest {
 
     @Test
     void createContext_WithProfiling() {
-        OpenClContext context = builder
+        ClContext context = builder
                 .withDevice(device)
                 .withProfiling(true)
                 .create();
@@ -61,7 +61,7 @@ class ContextBuilderTest {
 
     @Test
     void createContext_WithBestDevice() {
-        OpenClContext context = builder
+        ClContext context = builder
                 .withBestDevice(platform)
                 .create();
 
@@ -74,7 +74,7 @@ class ContextBuilderTest {
     void createContext_WithBestCPUDevice() {
         assumeTrue(platform.hasCPUDevices(), "No CPU devices available for testing");
 
-        OpenClContext context = builder
+        ClContext context = builder
                 .withBestCPUDevice(platform)
                 .create();
 
@@ -86,7 +86,7 @@ class ContextBuilderTest {
     void createContext_WithBestGPUDevice() {
         assumeTrue(platform.hasGPUDevices(), "No GPU devices available for testing");
 
-        OpenClContext context = builder
+        ClContext context = builder
                 .withBestGPUDevice(platform)
                 .create();
 

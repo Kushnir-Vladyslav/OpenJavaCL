@@ -16,7 +16,7 @@
 
 package io.github.kushnirvladyslav.memory.newBuffer.typedBuffer;
 
-import io.github.kushnirvladyslav.OpenClContext;
+import io.github.kushnirvladyslav.ClContext;
 import io.github.kushnirvladyslav.memory.data.Data;
 import io.github.kushnirvladyslav.memory.newBuffer.KernelAwareBufferBuilder;
 import org.slf4j.Logger;
@@ -28,7 +28,7 @@ public class LocalBufferBuilder
 
     private int size = 1;
 
-    public <B extends Data> LocalBuffer setup (Class<B> dataClass, OpenClContext context, int size) {
+    public <B extends Data> LocalBuffer setup (Class<B> dataClass, ClContext context, int size) {
         withDataClass(dataClass);
         withOpenClContext(context);
         withSize(size);
@@ -40,7 +40,7 @@ public class LocalBufferBuilder
         return build();
     }
 
-    public <B extends Data> LocalBuffer setup (String bufferName, Class<B> dataClass, OpenClContext context, int size) {
+    public <B extends Data> LocalBuffer setup (String bufferName, Class<B> dataClass, ClContext context, int size) {
         withName(bufferName);
 
         return setup(dataClass, context, size);

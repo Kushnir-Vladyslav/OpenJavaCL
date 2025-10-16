@@ -16,13 +16,13 @@
 
 package io.github.kushnirvladyslav.memory.buffer;
 
+import io.github.kushnirvladyslav.ClContext;
 import io.github.kushnirvladyslav.exceptions.BufferDestructionException;
 import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
 import io.github.kushnirvladyslav.memory.data.ConvertFromByteBuffer;
 import io.github.kushnirvladyslav.memory.data.ConvertToByteBuffer;
 import io.github.kushnirvladyslav.memory.data.Data;
-import io.github.kushnirvladyslav.OpenClContext;
 import io.github.kushnirvladyslav.memory.util.DeviceMemoryAccess;
 import io.github.kushnirvladyslav.memory.util.HostMemoryAccess;
 import io.github.kushnirvladyslav.util.CLVersion;
@@ -295,7 +295,7 @@ public abstract class AbstractGlobalBuffer
      * @throws BufferDestructionException if the buffer has been closed
      */
     public <T extends Data> void setup (Class<T> clazz,
-                       OpenClContext context,
+                       ClContext context,
                        boolean copyNativeBuffer,
                        boolean copyHostBuffer,
                        int initSize) {
@@ -333,7 +333,7 @@ public abstract class AbstractGlobalBuffer
      */
     public <T extends Data> void setup (String bufferName,
                        Class<T> clazz,
-                       OpenClContext context,
+                       ClContext context,
                        boolean copyNativeBuffer,
                        boolean copyHostBuffer,
                        int initSize) {

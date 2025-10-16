@@ -16,7 +16,7 @@
 
 package io.github.kushnirvladyslav.memory.newBuffer;
 
-import io.github.kushnirvladyslav.OpenClContext;
+import io.github.kushnirvladyslav.ClContext;
 import io.github.kushnirvladyslav.exceptions.BufferDestructionException;
 import io.github.kushnirvladyslav.memory.data.Data;
 import io.github.kushnirvladyslav.util.StatusCL;
@@ -30,7 +30,7 @@ public abstract class BaseBuffer implements AutoCloseable {
     protected final String name;
     protected StatusCL status;
 
-    protected final OpenClContext context;
+    protected final ClContext context;
     protected final Data dataObject;
 
     protected BaseBuffer(BaseBufferBuilder<?, ?> builder) {
@@ -50,12 +50,12 @@ public abstract class BaseBuffer implements AutoCloseable {
         return status == StatusCL.CLOSED;
     }
 
-    public OpenClContext getContext() {
+    public ClContext getContext() {
         checkNotClosed();
         return context;
     }
 
-    public boolean inSameContext(OpenClContext context) {
+    public boolean inSameContext(ClContext context) {
         checkNotClosed();
         return this.context.equals(context);
     }

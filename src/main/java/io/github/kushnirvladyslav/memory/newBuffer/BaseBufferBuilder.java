@@ -16,7 +16,7 @@
 
 package io.github.kushnirvladyslav.memory.newBuffer;
 
-import io.github.kushnirvladyslav.OpenClContext;
+import io.github.kushnirvladyslav.ClContext;
 
 import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
 import io.github.kushnirvladyslav.memory.data.Data;
@@ -32,7 +32,7 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
 
     private String name;
 
-    private OpenClContext context;
+    private ClContext context;
     private Class<?> dataClass;
 
     @SuppressWarnings("unchecked")
@@ -49,7 +49,7 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
     }
 
     @SuppressWarnings("unchecked")
-    public T withOpenClContext(OpenClContext clContext) {
+    public T withOpenClContext(ClContext clContext) {
         if (clContext == null) {
             String message = name != null
                     ? String.format("OpenCL context cannot be null for building buffer '%s'", name)
@@ -94,7 +94,7 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
         }
     }
 
-    protected OpenClContext getContext(){
+    protected ClContext getContext(){
         if (context == null) {
             String message = "OpenCL context cannot be null for building buffer";
             logger.error(message);

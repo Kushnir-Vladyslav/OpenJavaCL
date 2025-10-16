@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Example usage:
  * <pre>{@code
- * OpenClContext context = OpenCL.createContext()
+ * ClContext context = OpenCL.createContext()
  *     .withDevice(device)
  *     .withOutOfOrderQueue(true)
  *     .withProfiling(true)
@@ -63,7 +63,7 @@ import org.slf4j.LoggerFactory;
  * @version 1.0.0
  * @since 2025-08-13
  *
- * @see OpenClContext
+ * @see ClContext
  * @see Platform
  * @see Device
  */
@@ -281,7 +281,7 @@ public class ContextBuilder {
      * @throws ContextCreationException if context creation fails
      * @throws DeviceNotFoundException if no device was specified or device is unavailable
      */
-    public OpenClContext create () {
+    public ClContext create () {
         logger.debug("Starting context creation");
         validate();
 
@@ -303,7 +303,7 @@ public class ContextBuilder {
                 logger.debug("Created device queue");
             }
 
-            OpenClContext contextCL = new OpenClContext(
+            ClContext contextCL = new ClContext(
                     platform,
                     device,
                     outOfOrder,

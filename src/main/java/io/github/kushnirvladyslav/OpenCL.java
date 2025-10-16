@@ -56,9 +56,9 @@ public class OpenCL {
     private static final List<Platform> platforms;
     private static final Object lock = new Object();
 
-    private static OpenClContext defaultContext = null;
+    private static ClContext defaultContext = null;
     private static final AtomicInteger numDefaultContext = new AtomicInteger(0);
-    private static final List<OpenClContext> contextList = new CopyOnWriteArrayList<>();
+    private static final List<ClContext> contextList = new CopyOnWriteArrayList<>();
 
     private static volatile StatusCL status = StatusCL.CLOSED;
 
@@ -109,7 +109,7 @@ public class OpenCL {
      * @throws DeviceNotFoundException if no suitable OpenCL device is found
      * @throws ContextCreationException if context creation fails
      */
-    static public OpenClContext getDefaultContext() {
+    static public ClContext getDefaultContext() {
         synchronized (lock) {
             if (numDefaultContext.get() == 0) {
                 logger.debug("Creating new default OpenCL context");
@@ -128,7 +128,7 @@ public class OpenCL {
      * @throws DeviceNotFoundException if no suitable OpenCL device is found
      * @throws ContextCreationException if context creation fails
      */
-    static public OpenClContext createDefaultContext() {
+    static public ClContext createDefaultContext() {
         if (platforms.isEmpty()) {
             logger.error("No OpenCL platforms available");
             throw new DeviceNotFoundException("No OpenCL platforms available");
@@ -167,7 +167,7 @@ public class OpenCL {
      * @param context The context to register
      * @throws IllegalArgumentException if the context is null
      */
-    static void registrationContext(OpenClContext context) {
+    static void registrationContext(ClContext context) {
         if (context == null) {
             logger.error("Attempted to register null context");
             throw new IllegalArgumentException("Context cannot be null");
@@ -182,7 +182,7 @@ public class OpenCL {
      * @param context The context to destroy
      * @throws IllegalArgumentException if the context is null or not registered
      */
-    public static void destroyContext(OpenClContext context) {
+    public static void destroyContext(ClContext context) {
         if (context == null) {
             logger.error("Attempted to destroy null context");
             throw new IllegalArgumentException("Context cannot be null");
@@ -256,7 +256,7 @@ public class OpenCL {
     public void shutdown() {
         synchronized (lock) {
             logger.info("Initiating OpenCL shutdown");
-            for (OpenClContext context : contextList) {
+            for (ClContext context : contextList) {
                 try {
                     context.destroy();
                 } catch (Exception e) {

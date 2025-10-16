@@ -19,6 +19,7 @@ package io.github.kushnirvladyslav.memory.newBuffer;
 
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
+import io.github.kushnirvladyslav.util.clEvent.ClEventList;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL10;
 import org.lwjgl.system.MemoryStack;
@@ -47,7 +48,7 @@ interface Dynamical
     }
 
     @SuppressWarnings("unchecked")
-    default void resize(int newCapacity, long[] events){
+    default void resize(int newCapacity, ClEventList events){
         if (newCapacity < 0) {
             String message = String.format(
                     "Required capacity cannot be negative: %d",
@@ -73,7 +74,7 @@ interface Dynamical
     }
 
     @SuppressWarnings("unchecked")
-    default void increase(int newCapacity, long[] events){
+    default void increase(int newCapacity, ClEventList events){
         T buffer = (T) this;
         buffer.checkNotClosed();
 
@@ -83,8 +84,6 @@ interface Dynamical
             long oldClBuffer = buffer.clMem;
 
             try (MemoryStack stack = MemoryStack.stackPush()){
-                PointerBuffer eventList = events != null && events.length != 0 ?
-                        stack.mallocPointer(events.length).put(events).rewind() : null;
                 PointerBuffer thisEvent = stack.mallocPointer(1);
 
                 int dataSize = buffer.dataObject.getSizeStruct();
@@ -99,10 +98,11 @@ interface Dynamical
                         0,
                         0,
                         (long) currentCapacity * dataSize,
-                        eventList,
+                        events.getEventList(stack),
                         thisEvent.rewind()
                 );
 
+                events.releaseEvents();
 
                 if (!OpenCLErrorUtils.isSuccess(errorCode)) {
                     String message = String.format(
@@ -113,6 +113,7 @@ interface Dynamical
                 }
 
                 errorCode = CL10.clWaitForEvents(thisEvent);
+                CL10.clReleaseEvent(thisEvent.get(0));
                 if (!OpenCLErrorUtils.isSuccess(errorCode)) {
                     String message = String.format(
                             "Copying from old to new clBuffer, when increasing size of buffer '%s', ended with an error: %s",
@@ -142,7 +143,7 @@ interface Dynamical
     }
 
     @SuppressWarnings("unchecked")
-    default void decrease(int newCapacity, long[] events){
+    default void decrease(int newCapacity, ClEventList events){
         T buffer = (T) this;
         buffer.checkNotClosed();
 
@@ -154,8 +155,6 @@ interface Dynamical
             long oldClBuffer = buffer.clMem;
 
             try (MemoryStack stack = MemoryStack.stackPush()){
-                PointerBuffer eventList = events != null && events.length != 0 ?
-                        stack.mallocPointer(events.length).put(events).rewind() : null;
                 PointerBuffer thisEvent = stack.mallocPointer(1);
 
                 int dataSize = buffer.dataObject.getSizeStruct();
@@ -170,10 +169,11 @@ interface Dynamical
                         0,
                         0,
                         (long) actualNewCapacity * dataSize,
-                        eventList,
+                        events.getEventList(stack),
                         thisEvent.rewind()
                 );
 
+                events.releaseEvents();
 
                 if (!OpenCLErrorUtils.isSuccess(errorCode)) {
                     String message = String.format(
@@ -184,6 +184,7 @@ interface Dynamical
                 }
 
                 errorCode = CL10.clWaitForEvents(thisEvent);
+                CL10.clReleaseEvent(thisEvent.get(0));
                 if (!OpenCLErrorUtils.isSuccess(errorCode)) {
                     String message = String.format(
                             "Copying from old to new clBuffer, when decreasing size of buffer '%s', ended with an error: %s",

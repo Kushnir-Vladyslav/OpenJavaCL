@@ -16,7 +16,7 @@
 
 package io.github.kushnirvladyslav.kernel;
 
-import io.github.kushnirvladyslav.OpenClContext;
+import io.github.kushnirvladyslav.ClContext;
 //import org.example.Library.LibraryManager;
 //import org.example.OldBuffers.BufferManager;
 import org.lwjgl.PointerBuffer;
@@ -37,7 +37,7 @@ public abstract class Kernel {
 //    protected BufferManager bufferManager;
 
     // Змінні що потрібні для роботи з буферами OpenCL та ядрами
-    protected OpenClContext openClContext;
+    protected ClContext clContext;
 
     protected PointerBuffer global;   // Буфер для передачі загальної кількості задач
     protected PointerBuffer local;    // Буфер для передачі кількості задач в одній робочій групі
@@ -55,7 +55,7 @@ public abstract class Kernel {
     protected Kernel (String kernelName, String kernelFile, String... libraries) {
 //        bufferManager = BufferManager.getInstance();
 //
-//        openClContext = OpenClContext.getInstance();
+//        clContext = ClContext.getInstance();
 //
 //        String kernelSource = "";
 //
@@ -78,19 +78,19 @@ public abstract class Kernel {
 //        modifyKernelSours(kernelSource);
 //
 //        // Компіляція та створення kernel
-//        program = CL10.clCreateProgramWithSource(openClContext.context, kernelSource, null);
+//        program = CL10.clCreateProgramWithSource(clContext.context, kernelSource, null);
 //        if (program == 0) {
 //            throw new RuntimeException("Failed to create OpenCL program");
 //        }
 //
-//        int buildStatus = CL10.clBuildProgram(program, openClContext.device, "", null, 0);
+//        int buildStatus = CL10.clBuildProgram(program, clContext.device, "", null, 0);
 //        if (buildStatus != CL10.CL_SUCCESS) {
 //            // Отримання журналу компіляції
 //            PointerBuffer sizeBuffer = MemoryStack.stackMallocPointer(1);
-//            CL10.clGetProgramBuildInfo(program, openClContext.device, CL10.CL_PROGRAM_BUILD_LOG, (ByteBuffer) null, sizeBuffer);
+//            CL10.clGetProgramBuildInfo(program, clContext.device, CL10.CL_PROGRAM_BUILD_LOG, (ByteBuffer) null, sizeBuffer);
 //
 //            ByteBuffer buildLogBuffer = MemoryStack.stackMalloc((int) sizeBuffer.get(0));
-//            CL10.clGetProgramBuildInfo(program, openClContext.device, CL10.CL_PROGRAM_BUILD_LOG, buildLogBuffer, null);
+//            CL10.clGetProgramBuildInfo(program, clContext.device, CL10.CL_PROGRAM_BUILD_LOG, buildLogBuffer, null);
 //
 //            String buildLog = MemoryUtil.memUTF8(buildLogBuffer);
 //            System.err.println("Build log:\n" + buildLog);

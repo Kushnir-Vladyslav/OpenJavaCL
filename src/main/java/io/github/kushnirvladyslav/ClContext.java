@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Example usage:
  * <pre>{@code
- * OpenClContext context = OpenCL.createContext()
+ * ClContext context = OpenCL.createContext()
  *     .withDevice(device)
  *     .create();
  *
@@ -66,8 +66,8 @@ import org.slf4j.LoggerFactory;
  * @see Platform
  * @see Device
  */
-public class OpenClContext {
-    private static final Logger logger = LoggerFactory.getLogger(OpenClContext.class);
+public class ClContext {
+    private static final Logger logger = LoggerFactory.getLogger(ClContext.class);
 
     private final Platform platform;
     private final Device device;
@@ -94,9 +94,9 @@ public class OpenClContext {
      * @param sizeDeviceCommandQueue the size of device queue
      * @throws ResourceAllocationException if device queue size is invalid
      */
-    OpenClContext (Platform platform, Device device, boolean isOutOfOrder,
-                   long context, long commandQueue, long deviceCommandQueue,
-                   long sizeDeviceCommandQueue) {
+    ClContext(Platform platform, Device device, boolean isOutOfOrder,
+              long context, long commandQueue, long deviceCommandQueue,
+              long sizeDeviceCommandQueue) {
         logger.debug("Creating new OpenCL context for device: {}", device.getName());
 
         this.platform = platform;
@@ -305,7 +305,7 @@ public class OpenClContext {
 
     @Override
     public String toString() {
-        return String.format("OpenClContext{platform=%s, device=%s, status=%s, outOfOrder=%s, hasDeviceQueue=%s}",
+        return String.format("ClContext{platform=%s, device=%s, status=%s, outOfOrder=%s, hasDeviceQueue=%s}",
                 platform != null ? platform.getName() : "null",
                 device != null ? device.getName() : "null",
                 status.name(),
@@ -322,7 +322,7 @@ public class OpenClContext {
             return false;
         }
 
-        OpenClContext other = (OpenClContext) obj;
+        ClContext other = (ClContext) obj;
 
         return  this.isOutOfOrder == other.isOutOfOrder &&
                 this.context == other.context &&

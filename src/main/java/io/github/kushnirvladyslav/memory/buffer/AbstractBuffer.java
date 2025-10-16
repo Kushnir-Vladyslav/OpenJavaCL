@@ -16,10 +16,10 @@
 
 package io.github.kushnirvladyslav.memory.buffer;
 
+import io.github.kushnirvladyslav.ClContext;
 import io.github.kushnirvladyslav.exceptions.BufferDestructionException;
 import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
 import io.github.kushnirvladyslav.memory.data.Data;
-import io.github.kushnirvladyslav.OpenClContext;
 import io.github.kushnirvladyslav.util.StatusCL;
 import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
@@ -58,7 +58,7 @@ public abstract class AbstractBuffer {
     private String bufferName;
 
     private Class<?> clazz = null;
-    protected OpenClContext context;
+    protected ClContext context;
 
     protected Data dataObject;
 
@@ -118,7 +118,7 @@ public abstract class AbstractBuffer {
      * @throws IllegalArgumentException if the context is null
      * @throws BufferDestructionException if the buffer has been closed
      */
-    public AbstractBuffer withOpenClContext(OpenClContext clContext) {
+    public AbstractBuffer withOpenClContext(ClContext clContext) {
         readyForInit();
         if (clContext == null) {
             String message = String.format("OpenCL context cannot be null for buffer '%s'", bufferName);

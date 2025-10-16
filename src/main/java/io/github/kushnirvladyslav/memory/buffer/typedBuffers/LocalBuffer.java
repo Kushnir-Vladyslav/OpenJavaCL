@@ -18,7 +18,7 @@ package io.github.kushnirvladyslav.memory.buffer.typedBuffers;
 
 import io.github.kushnirvladyslav.memory.buffer.KernelAwareBuffer;
 import io.github.kushnirvladyslav.memory.data.Data;
-import io.github.kushnirvladyslav.OpenClContext;
+import io.github.kushnirvladyslav.ClContext;
 import org.lwjgl.opencl.CL10;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +59,7 @@ public class LocalBuffer
      * @param context OpenCL context
      * @param initSize initial size of the buffer
      */
-    public void setup (Class<Data> dataClass, OpenClContext context, int initSize) {
+    public void setup (Class<Data> dataClass, ClContext context, int initSize) {
         logger.debug("Setting up LocalBuffer '{}' with size {}", this.getBufferName(), initSize);
         withDataClass(dataClass);
         withInitSize(initSize);
@@ -75,7 +75,7 @@ public class LocalBuffer
      * @param context OpenCL context
      * @param initSize initial size of the buffer
      */
-    public void setup (String bufferName, Class<Data> dataClass, OpenClContext context, int initSize) {
+    public void setup (String bufferName, Class<Data> dataClass, ClContext context, int initSize) {
         logger.debug("Setting up LocalBuffer '{}' with size {}", bufferName, initSize);
         withBufferName(bufferName);
         withDataClass(dataClass);

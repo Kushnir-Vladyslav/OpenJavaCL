@@ -16,7 +16,7 @@
 
 package io.github.kushnirvladyslav.memory.newBuffer.typedBuffer;
 
-import io.github.kushnirvladyslav.OpenClContext;
+import io.github.kushnirvladyslav.ClContext;
 import io.github.kushnirvladyslav.memory.data.Data;
 import io.github.kushnirvladyslav.memory.newBuffer.KernelAwareBufferBuilder;
 import org.slf4j.Logger;
@@ -26,7 +26,7 @@ public class ParameterBufferBuilder
         extends KernelAwareBufferBuilder<ParameterBufferBuilder, ParameterBuffer> {
     private static final Logger logger = LoggerFactory.getLogger(ParameterBufferBuilder.class);
 
-    public <B extends Data> ParameterBuffer setup (Class<B> dataClass, OpenClContext context) {
+    public <B extends Data> ParameterBuffer setup (Class<B> dataClass, ClContext context) {
         withDataClass(dataClass);
         withOpenClContext(context);
 
@@ -37,7 +37,7 @@ public class ParameterBufferBuilder
         return build();
     }
 
-    public <B extends Data> ParameterBuffer setup (String bufferName, Class<B> dataClass, OpenClContext context) {
+    public <B extends Data> ParameterBuffer setup (String bufferName, Class<B> dataClass, ClContext context) {
         withName(bufferName);
 
         return setup(dataClass, context);
