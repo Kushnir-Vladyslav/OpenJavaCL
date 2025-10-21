@@ -79,7 +79,7 @@ public class CopyDataBufferToBuffer {
         }
 
         if (src.getDataClass().equals(dst.getDataClass())) {
-            logger.warn("Unsafe copy operation: Data type mismatch between buffers '{}' and '{}'",
+            logger.warn("Unsafe copy operation: DataProcessor type mismatch between buffers '{}' and '{}'",
                     src.getBufferName(), dst.getBufferName());
         }
 

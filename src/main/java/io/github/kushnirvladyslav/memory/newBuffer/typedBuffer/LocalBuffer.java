@@ -58,7 +58,7 @@ public class LocalBuffer
         int errorCode = CL10.clSetKernelArg(
                 targetKernel,
                 argIndex,
-                (long) size * dataObject.getSizeStruct());
+                (long) size * dataProcessor.getSizeStruct());
 
         if (errorCode != CL10.CL_SUCCESS) {
             String message = String.format(

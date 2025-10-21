@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
  * BufferManager manager = new BufferManager();
  * AbstractBuffer buffer = new GlobalDynamicBuffer()
  *     .withBufferName("MyBuffer")
- *     .withDataClass(FloatData.class)
+ *     .withDataClass(FloatDataProcessor.class)
  *     .init();
  * manager.registerBuffer(buffer);
  * </pre>

@@ -1,17 +1,17 @@
 package io.github.kushnirvladyslav.typicalTypeDataTests;
 
-import io.github.kushnirvladyslav.memory.data.typical.CharData;
+import io.github.kushnirvladyslav.memory.data.typical.CharDataProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 import static org.junit.jupiter.api.Assertions.*;
 
-class CharDataTest {
-    private CharData charData;
+class CharDataTestProcessor {
+    private CharDataProcessor charData;
 
     @BeforeEach
     void setUp() {
-        charData = new CharData();
+        charData = new CharDataProcessor();
     }
 
     @Test

@@ -1,17 +1,17 @@
 package io.github.kushnirvladyslav.typicalTypeDataTests;
 
-import io.github.kushnirvladyslav.memory.data.typical.ShortData;
+import io.github.kushnirvladyslav.memory.data.typical.ShortDataProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 import static org.junit.jupiter.api.Assertions.*;
 
-class ShortDataTest {
-    private ShortData shortData;
+class ShortDataTestProcessor {
+    private ShortDataProcessor shortData;
 
     @BeforeEach
     void setUp() {
-        shortData = new ShortData();
+        shortData = new ShortDataProcessor();
     }
 
     @Test

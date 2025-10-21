@@ -17,7 +17,7 @@
 package io.github.kushnirvladyslav.memory.buffer.typedBuffers;
 
 import io.github.kushnirvladyslav.memory.buffer.KernelAwareBuffer;
-import io.github.kushnirvladyslav.memory.data.Data;
+import io.github.kushnirvladyslav.memory.data.DataProcessor;
 import io.github.kushnirvladyslav.ClContext;
 import org.lwjgl.opencl.CL10;
 import org.slf4j.Logger;
@@ -59,7 +59,7 @@ public class LocalBuffer
      * @param context OpenCL context
      * @param initSize initial size of the buffer
      */
-    public void setup (Class<Data> dataClass, ClContext context, int initSize) {
+    public void setup (Class<DataProcessor> dataClass, ClContext context, int initSize) {
         logger.debug("Setting up LocalBuffer '{}' with size {}", this.getBufferName(), initSize);
         withDataClass(dataClass);
         withInitSize(initSize);
@@ -75,7 +75,7 @@ public class LocalBuffer
      * @param context OpenCL context
      * @param initSize initial size of the buffer
      */
-    public void setup (String bufferName, Class<Data> dataClass, ClContext context, int initSize) {
+    public void setup (String bufferName, Class<DataProcessor> dataClass, ClContext context, int initSize) {
         logger.debug("Setting up LocalBuffer '{}' with size {}", bufferName, initSize);
         withBufferName(bufferName);
         withDataClass(dataClass);
@@ -102,7 +102,7 @@ public class LocalBuffer
         int errorCode = CL10.clSetKernelArg(
                 targetKernel,
                 argIndex,
-                (long) capacity * dataObject.getSizeStruct());
+                (long) capacity * dataProcessorObject.getSizeStruct());
 
         if (errorCode != CL10.CL_SUCCESS) {
             String message = String.format(
@@ -127,6 +127,6 @@ public class LocalBuffer
     @Override
     public String toString() {
         return String.format("LocalBuffer{name='%s', capacity=%d, dataClass=%s}",
-                getBufferName(), capacity, dataObject.getClass().getSimpleName());
+                getBufferName(), capacity, dataProcessorObject.getClass().getSimpleName());
     }
 }

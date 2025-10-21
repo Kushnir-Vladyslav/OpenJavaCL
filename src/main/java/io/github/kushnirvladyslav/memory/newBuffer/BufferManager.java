@@ -39,7 +39,7 @@ import java.util.List;
  * BufferManager manager = new BufferManager();
  * BaseBuffer buffer = new GlobalDynamicBuffer()
  *     .withBufferName("MyBuffer")
- *     .withDataClass(FloatData.class)
+ *     .withDataClass(FloatDataProcessor.class)
  *     .init();
  * manager.registerBuffer(buffer);
  * </pre>

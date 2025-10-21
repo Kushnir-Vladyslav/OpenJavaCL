@@ -55,6 +55,6 @@ public class GlobalDynamicReadWriteBuffer
     @Override
     public String toString() {
         return String.format("GlobalDynamicReadWriteBuffer{name='%s', capacity=%d, dataClass=%s}",
-                getBufferName(), capacity, dataObject.getClass().getSimpleName());
+                getBufferName(), capacity, dataProcessorObject.getClass().getSimpleName());
     }
 }

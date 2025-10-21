@@ -16,7 +16,7 @@
 
 package io.github.kushnirvladyslav.memory.newBuffer.typedBuffer;
 
-import io.github.kushnirvladyslav.memory.data.ConvertToByteBuffer;
+import io.github.kushnirvladyslav.memory.data.ToByteBuffer;
 
 import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
@@ -38,14 +38,14 @@ public class ParameterBuffer
 
     protected ParameterBuffer(ParameterBufferBuilder builder){
         super(builder);
-        if (!(dataObject instanceof ConvertToByteBuffer)){
+        if (!(dataProcessor instanceof ToByteBuffer)){
             String message = String.format(
-                    "Data object for buffer '%s' must implement ConvertToByteBuffer interface, got %s",
-                    name, dataObject.getClass().getSimpleName());
+                    "DataProcessor object for buffer '%s' must implement ToByteBuffer interface, got %s",
+                    name, dataProcessor.getClass().getSimpleName());
             logger.error(message);
             throw new BufferInitializationException(message);
         }
-        nativeBuffer = MemoryUtil.memAlloc(dataObject.getSizeStruct());
+        nativeBuffer = MemoryUtil.memAlloc(dataProcessor.getSizeStruct());
     }
 
     public synchronized void write(Object parameter) {
@@ -60,7 +60,7 @@ public class ParameterBuffer
 
         try {
             nativeBuffer.clear();
-            ((ConvertToByteBuffer)dataObject).convertToByteBuffer(nativeBuffer, parameter);
+            ((ToByteBuffer) dataProcessor).convertToByteBuffer(nativeBuffer, parameter);
             logger.debug("Parameter set for ParameterBuffer '{}'", getName());
         } catch (Exception e) {
             String message = String.format("Failed to convert parameter for ParameterBuffer '%s'",

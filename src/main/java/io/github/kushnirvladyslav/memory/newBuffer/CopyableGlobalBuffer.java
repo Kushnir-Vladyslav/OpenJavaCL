@@ -118,12 +118,12 @@ public abstract class CopyableGlobalBuffer
             throw new BufferOperationException(message);
         }
 
-        if (!src.dataObject.getClass().equals(dst.dataObject.getClass())){
+        if (!src.dataProcessor.getClass().equals(dst.dataProcessor.getClass())){
             String message = String.format(
                     "Buffer data types mismatch: source is %s, destination is %s. " +
                             "This will likely cause data corruption or undefined behavior.",
-                    src.dataObject.getClass().getSimpleName(),
-                    dst.dataObject.getClass().getSimpleName()
+                    src.dataProcessor.getClass().getSimpleName(),
+                    dst.dataProcessor.getClass().getSimpleName()
             );
             logger.error(message);
             throw new BufferOperationException(message);
@@ -141,6 +141,11 @@ public abstract class CopyableGlobalBuffer
             throw new BufferOperationException(message);
         }
 
+        //
+        //
+        //виправити, розмір нічого не означає
+        //
+        //
         if (dst.size < dstOffset + size) {
             if(dst instanceof Dynamical){
                 Dynamical dynamical = (Dynamical) dst;
@@ -159,7 +164,7 @@ public abstract class CopyableGlobalBuffer
         try(MemoryStack stack = MemoryStack.stackPush()){
             PointerBuffer thisEvent = stack.mallocPointer(1);
 
-            int dataSize = src.dataObject.getSizeStruct();
+            int dataSize = src.dataProcessor.getSizeStruct();
 
             int errorCode = CL10.clEnqueueCopyBuffer(
                     src.context.getCommandQueue(),

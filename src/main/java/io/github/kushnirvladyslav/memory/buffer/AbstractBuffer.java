@@ -19,7 +19,7 @@ package io.github.kushnirvladyslav.memory.buffer;
 import io.github.kushnirvladyslav.ClContext;
 import io.github.kushnirvladyslav.exceptions.BufferDestructionException;
 import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
-import io.github.kushnirvladyslav.memory.data.Data;
+import io.github.kushnirvladyslav.memory.data.DataProcessor;
 import io.github.kushnirvladyslav.util.StatusCL;
 import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <pre>
  * AbstractBuffer buffer = new ConcreteBuffer()
  *     .withBufferName("MyBuffer")
- *     .withDataClass(FloatData.class)
+ *     .withDataClass(FloatDataProcessor.class)
  *     .withInitSize(1024)
  *     .withOpenClContext(context)
  *     .init();
@@ -60,7 +60,7 @@ public abstract class AbstractBuffer {
     private Class<?> clazz = null;
     protected ClContext context;
 
-    protected Data dataObject;
+    protected DataProcessor dataProcessorObject;
 
     protected ByteBuffer nativeBuffer = null;
 
@@ -161,10 +161,10 @@ public abstract class AbstractBuffer {
      * @throws IllegalArgumentException if the class is null
      * @throws BufferDestructionException if the buffer has been closed
      */
-    public <T extends Data> AbstractBuffer withDataClass(Class<T> newClass) {
+    public <T extends DataProcessor> AbstractBuffer withDataClass(Class<T> newClass) {
         readyForInit();
         if (newClass == null) {
-            String message = String.format("Data class cannot be null for buffer '%s'", bufferName);
+            String message = String.format("DataProcessor class cannot be null for buffer '%s'", bufferName);
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
@@ -215,7 +215,7 @@ public abstract class AbstractBuffer {
             throwInitError("Buffer name cannot be null");
         }
         if (clazz == null) {
-            throwInitError("Data class must be set");
+            throwInitError("DataProcessor class must be set");
         }
         if (capacity < 1) {
             throwInitError("Buffer size must be positive");
@@ -227,7 +227,7 @@ public abstract class AbstractBuffer {
 
     private void initializeDataObject() {
         try {
-            dataObject = (Data) clazz.getConstructor().newInstance();
+            dataProcessorObject = (DataProcessor) clazz.getConstructor().newInstance();
         } catch (Exception e) {
             throwInitError("Failed to instantiate data class: " + e.getMessage());
         }

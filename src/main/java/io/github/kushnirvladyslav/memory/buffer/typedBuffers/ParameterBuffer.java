@@ -19,8 +19,8 @@ package io.github.kushnirvladyslav.memory.buffer.typedBuffers;
 
 import io.github.kushnirvladyslav.ClContext;
 import io.github.kushnirvladyslav.memory.buffer.KernelAwareBuffer;
-import io.github.kushnirvladyslav.memory.data.ConvertToByteBuffer;
-import io.github.kushnirvladyslav.memory.data.Data;
+import io.github.kushnirvladyslav.memory.data.DataProcessor;
+import io.github.kushnirvladyslav.memory.data.ToByteBuffer;
 import org.lwjgl.opencl.CL10;
 import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
@@ -65,7 +65,7 @@ public class ParameterBuffer
      * @param context OpenCL context
      * @throws IllegalArgumentException if parameter is null
      */
-    public void setup (Class<Data> dataClass, ClContext context) {
+    public void setup (Class<DataProcessor> dataClass, ClContext context) {
         logger.debug("Setting up ParameterBuffer '{}' with parameter of type {}",
                 getBufferName(), dataClass.getSimpleName());
 
@@ -82,7 +82,7 @@ public class ParameterBuffer
      * @param context OpenCL context
      * @throws IllegalArgumentException if parameter is null
      */
-    public void setup (String bufferName, Class<Data> dataClass, ClContext context) {
+    public void setup (String bufferName, Class<DataProcessor> dataClass, ClContext context) {
         logger.debug("Setting up ParameterBuffer '{}' with parameter of type {}",
                 bufferName, dataClass.getSimpleName());
 
@@ -95,7 +95,7 @@ public class ParameterBuffer
     @Override
     public void additionalInit() {
         try {
-            nativeBuffer = MemoryUtil.memAlloc(dataObject.getSizeStruct());
+            nativeBuffer = MemoryUtil.memAlloc(dataProcessorObject.getSizeStruct());
             if (nativeBuffer == null) {
                 String message = String.format(
                         "Failed to allocate native buffer for ParameterBuffer '%s'",
@@ -129,7 +129,7 @@ public class ParameterBuffer
 
         try {
             nativeBuffer.clear();
-            ((ConvertToByteBuffer)dataObject).convertToByteBuffer(nativeBuffer, parameter);
+            ((ToByteBuffer) dataProcessorObject).convertToByteBuffer(nativeBuffer, parameter);
             logger.debug("Parameter set for ParameterBuffer '{}'", getBufferName());
         } catch (Exception e) {
             String message = String.format("Failed to convert parameter for ParameterBuffer '%s'",
@@ -186,6 +186,6 @@ public class ParameterBuffer
     @Override
     public String toString() {
         return String.format("ParameterBuffer{name='%s', parameterType=%s}",
-                getBufferName(), dataObject.getClass().getSimpleName());
+                getBufferName(), dataProcessorObject.getClass().getSimpleName());
     }
 }

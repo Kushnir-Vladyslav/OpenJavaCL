@@ -21,7 +21,7 @@ import java.nio.ByteBuffer;
 
 /**
  * Interface for converting data structures to ByteBuffer format for OpenCL operations.
- * This interface is used in conjunction with the Data interface to provide
+ * This interface is used in conjunction with the DataProcessor interface to provide
  * serialization capabilities for OpenCL buffer operations.
  *
  * <p>Implementations of this interface should handle the conversion of their specific
@@ -30,7 +30,7 @@ import java.nio.ByteBuffer;
  *
  * <p>Example implementation for float arrays:
  * <pre>
- * public class FloatData implements Data, ConvertToByteBuffer {
+ * public class FloatDataProcessor implements DataProcessor, ToByteBuffer {
  *     {@literal @}Override
  *     public void convertToByteBuffer(ByteBuffer buffer, Object source) {
  *         if (!(source instanceof float[])) {
@@ -51,11 +51,11 @@ import java.nio.ByteBuffer;
  * </ul>
  *
  * @see java.nio.ByteBuffer
- * @see Data
+ * @see DataProcessor
  * @since 1.0
  * @author Vladyslav Kushnir
  */
-public interface ConvertToByteBuffer {
+public interface ToByteBuffer {
 
     /**
      * Converts the source data structure to bytes and writes them to the provided ByteBuffer.

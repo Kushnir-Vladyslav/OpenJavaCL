@@ -47,7 +47,7 @@ public abstract class GlobalBuffer
         setup();
 
         if(builder.getStagingBuffer()){
-            stagingBuffer = MemoryUtil.memAlloc(capacity * dataObject.getSizeStruct());
+            stagingBuffer = MemoryUtil.memAlloc(capacity * dataProcessor.getSizeStruct());
         }
 
         createClMem();
@@ -70,7 +70,7 @@ public abstract class GlobalBuffer
             newClMem = CL10.clCreateBuffer(
                     context.getContext(),
                     flags,
-                    (long) capacity * dataObject.getSizeStruct(),
+                    (long) capacity * dataProcessor.getSizeStruct(),
                     errorCode
             );
 

@@ -1,17 +1,17 @@
 package io.github.kushnirvladyslav.typicalTypeDataTests;
 
-import io.github.kushnirvladyslav.memory.data.typical.LongData;
+import io.github.kushnirvladyslav.memory.data.typical.LongDataProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 import static org.junit.jupiter.api.Assertions.*;
 
-class LongDataTest {
-    private LongData longData;
+class LongDataTestProcessor {
+    private LongDataProcessor longData;
 
     @BeforeEach
     void setUp() {
-        longData = new LongData();
+        longData = new LongDataProcessor();
     }
 
     @Test

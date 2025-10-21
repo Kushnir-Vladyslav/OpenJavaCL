@@ -19,8 +19,8 @@ package io.github.kushnirvladyslav.Buffers;
 import io.github.kushnirvladyslav.*;
 import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
 import io.github.kushnirvladyslav.exceptions.BufferDestructionException;
-import io.github.kushnirvladyslav.memory.data.Data;
-import io.github.kushnirvladyslav.memory.data.typical.IntData;
+import io.github.kushnirvladyslav.memory.data.DataProcessor;
+import io.github.kushnirvladyslav.memory.data.typical.IntDataProcessor;
 import io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.ParameterBuffer;
 import io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.ParameterBufferBuilder;
 import org.junit.jupiter.api.*;
@@ -132,11 +132,11 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should create ParameterBuffer with valid parameters")
     void testCreateParameterBuffer() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         assertNotNull(buffer);
         assertFalse(buffer.isClosed());
-        assertEquals(IntData.class, buffer.getDataClass());
+        assertEquals(IntDataProcessor.class, buffer.getDataClass());
         assertTrue(buffer.inSameContext(context));
 
         buffer.destroy();
@@ -146,7 +146,7 @@ public class ParameterBufferTest {
     @DisplayName("Should create ParameterBuffer with custom name")
     void testCreateParameterBufferWithName() {
         String bufferName = "TestBuffer";
-        ParameterBuffer buffer = builder.setup(bufferName, IntData.class, context);
+        ParameterBuffer buffer = builder.setup(bufferName, IntDataProcessor.class, context);
 
         assertNotNull(buffer);
         assertEquals(bufferName, buffer.getName());
@@ -155,9 +155,9 @@ public class ParameterBufferTest {
     }
 
     @Test
-    @DisplayName("Should throw exception when Data class doesn't implement ConvertToByteBuffer")
+    @DisplayName("Should throw exception when DataProcessor class doesn't implement ToByteBuffer")
     void testCreateBufferWithInvalidDataClass() {
-        class InvalidData implements Data {
+        class InvalidDataProcessor implements DataProcessor {
             @Override
             public int getSizeStruct() { return 4; }
             @Override
@@ -165,7 +165,7 @@ public class ParameterBufferTest {
         }
 
         assertThrows(BufferInitializationException.class, () -> {
-            builder.setup(InvalidData.class, context);
+            builder.setup(InvalidDataProcessor.class, context);
         });
     }
 
@@ -173,7 +173,7 @@ public class ParameterBufferTest {
     @DisplayName("Should throw exception when context is null")
     void testCreateBufferWithNullContext() {
         assertThrows(IllegalArgumentException.class, () -> {
-            builder.setup(IntData.class, null);
+            builder.setup(IntDataProcessor.class, null);
         });
     }
 
@@ -183,7 +183,7 @@ public class ParameterBufferTest {
         OpenCL.destroyContext(context);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            builder.setup(IntData.class, context);
+            builder.setup(IntDataProcessor.class, context);
         });
     }
 
@@ -200,7 +200,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should write integer parameter successfully")
     void testWriteIntParameter() {
-        ParameterBuffer buffer = builder.setup("IntBuffer", IntData.class, context);
+        ParameterBuffer buffer = builder.setup("IntBuffer", IntDataProcessor.class, context);
 
         assertDoesNotThrow(() -> buffer.write(42));
 
@@ -210,7 +210,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should write integer parameter successfully")
     void testWriteIntegerParameter() {
-        ParameterBuffer buffer = builder.setup("IntBuffer", IntData.class, context);
+        ParameterBuffer buffer = builder.setup("IntBuffer", IntDataProcessor.class, context);
 
         Integer value = 100;
         assertDoesNotThrow(() -> buffer.write(value));
@@ -220,7 +220,7 @@ public class ParameterBufferTest {
 
     @Test
     void testWriteIntOneElementArrayParameter() {
-        ParameterBuffer buffer = builder.setup("IntArrayBuffer", IntData.class, context);
+        ParameterBuffer buffer = builder.setup("IntArrayBuffer", IntDataProcessor.class, context);
 
         int[] array = {3};
         assertDoesNotThrow(() -> buffer.write(array));
@@ -231,7 +231,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should write Integer boxed array parameter successfully")
     void testWriteIntegerOneElementBoxedArrayParameter() {
-        ParameterBuffer buffer = builder.setup("IntegerArrayBuffer", IntData.class, context);
+        ParameterBuffer buffer = builder.setup("IntegerArrayBuffer", IntDataProcessor.class, context);
 
         Integer[] array = {20};
         assertDoesNotThrow(() -> buffer.write(array));
@@ -241,7 +241,7 @@ public class ParameterBufferTest {
 
     @Test
     void testWriteIntArrayParameter() {
-        ParameterBuffer buffer = builder.setup("IntArrayBuffer", IntData.class, context);
+        ParameterBuffer buffer = builder.setup("IntArrayBuffer", IntDataProcessor.class, context);
 
         int[] array = {1, 2, 3, 4, 5};
         assertThrows(IllegalStateException.class, () -> buffer.write(array));
@@ -252,7 +252,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should write Integer boxed array parameter successfully")
     void testWriteIntegerBoxedArrayParameter() {
-        ParameterBuffer buffer = builder.setup("IntegerArrayBuffer", IntData.class, context);
+        ParameterBuffer buffer = builder.setup("IntegerArrayBuffer", IntDataProcessor.class, context);
 
         Integer[] array = {10, 20, 30};
         assertThrows(IllegalStateException.class, () -> buffer.write(array));
@@ -263,7 +263,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should throw exception when writing null parameter")
     void testWriteNullParameter() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
@@ -277,7 +277,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should throw exception when writing to closed buffer")
     void testWriteToClosedBuffer() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.destroy();
 
         assertThrows(BufferDestructionException.class, () -> {
@@ -288,7 +288,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should write multiple times to same buffer")
     void testMultipleWrites() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         assertDoesNotThrow(() -> {
             buffer.write(10);
@@ -302,7 +302,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should handle writing different scalar values")
     void testWriteDifferentScalarValues() {
-        ParameterBuffer buffer = builder.setup("ScalarBuffer", IntData.class, context);
+        ParameterBuffer buffer = builder.setup("ScalarBuffer", IntDataProcessor.class, context);
 
         assertDoesNotThrow(() -> {
             buffer.write(0);
@@ -317,7 +317,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should throw exception when writing array with null elements")
     void testWriteArrayWithNullElements() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         Integer[] arrayWithNull = {null};
         assertThrows(IllegalStateException.class, () -> {
@@ -330,7 +330,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should throw exception when writing unsupported type")
     void testWriteUnsupportedType() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         assertThrows(Exception.class, () -> {
             buffer.write("not an integer");
@@ -344,7 +344,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should bind buffer to kernel successfully")
     void testBindToKernel() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.write(42);
 
         clKernel = createSimpleKernel("test_kernel");
@@ -359,7 +359,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should bind buffer to multiple kernels")
     void testBindToMultipleKernels() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.write(100);
 
         long kernel1 = createSimpleKernel("kernel_one");
@@ -380,7 +380,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should throw exception when binding to zero kernel")
     void testBindToZeroKernel() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         assertThrows(IllegalArgumentException.class, () -> {
             buffer.bindToKernel(0L, 0);
@@ -392,7 +392,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should throw exception when binding with negative argument index")
     void testBindToKernelWithNegativeIndex() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         clKernel = createSimpleKernel("test_kernel");
 
@@ -406,7 +406,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should warn when binding buffer to same kernel and index")
     void testRebindToSameKernelAndIndex() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.write(42);
 
         clKernel = createSimpleKernel("test_kernel");
@@ -421,7 +421,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should throw exception when binding to same kernel with different index")
     void testBindToSameKernelDifferentIndex() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.write(42);
 
         clKernel = createKernelWithMultipleArgs("test_kernel");
@@ -441,7 +441,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should unbind kernel successfully")
     void testUnbindKernel() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.write(42);
 
         clKernel = createSimpleKernel("test_kernel");
@@ -460,7 +460,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should return false when unbinding non-bound kernel")
     void testUnbindNonBoundKernel() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         clKernel = createSimpleKernel("test_kernel");
 
@@ -473,7 +473,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should return false when unbinding zero kernel")
     void testUnbindZeroKernel() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         boolean result = buffer.unbindKernel(0L);
         assertFalse(result);
@@ -484,7 +484,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should handle unbind after rebind to same kernel")
     void testUnbindAfterRebind() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.write(42);
 
         clKernel = createSimpleKernel("test_kernel");
@@ -504,7 +504,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should destroy buffer successfully")
     void testDestroyBuffer() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         assertDoesNotThrow(() -> buffer.destroy());
         assertTrue(buffer.isClosed());
@@ -513,7 +513,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should throw exception when destroying already closed buffer")
     void testDestroyAlreadyClosedBuffer() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.destroy();
 
         assertThrows(BufferDestructionException.class, () -> {
@@ -524,7 +524,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should clean up kernel bindings on destroy")
     void testDestroyWithKernelBindings() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.write(42);
 
         long kernel1 = createSimpleKernel("kernel_one");
@@ -544,7 +544,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should not allow operations after destroy")
     void testOperationsAfterDestroy() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.destroy();
 
         assertThrows(BufferDestructionException.class, () -> buffer.write(42));
@@ -562,7 +562,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should handle concurrent writes safely")
     void testConcurrentWrites() throws InterruptedException {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         int threadCount = 10;
         Thread[] threads = new Thread[threadCount];
@@ -589,7 +589,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should handle concurrent bindings safely")
     void testConcurrentBindings() throws InterruptedException {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.write(42);
 
         int kernelCount = 5;
@@ -625,7 +625,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should throw exception when accessing closed buffer name")
     void testGetNameAfterDestroy() {
-        ParameterBuffer buffer = builder.setup("TestBuffer", IntData.class, context);
+        ParameterBuffer buffer = builder.setup("TestBuffer", IntDataProcessor.class, context);
         buffer.destroy();
 
         assertThrows(BufferDestructionException.class, buffer::getName);
@@ -634,7 +634,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should throw exception when accessing closed buffer context")
     void testGetContextAfterDestroy() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.destroy();
 
         assertThrows(BufferDestructionException.class, buffer::getContext);
@@ -643,12 +643,12 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should return correct toString representation")
     void testToString() {
-        ParameterBuffer buffer = builder.setup("MyBuffer", IntData.class, context);
+        ParameterBuffer buffer = builder.setup("MyBuffer", IntDataProcessor.class, context);
 
         String result = buffer.toString();
         assertTrue(result.contains("ParameterBuffer"));
         assertTrue(result.contains("MyBuffer"));
-        assertTrue(result.contains("IntData"));
+        assertTrue(result.contains("IntDataProcessor"));
         assertTrue(result.contains("RUNNING"));
 
         buffer.destroy();
@@ -657,7 +657,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should correctly report context association")
     void testContextAssociation() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         assertTrue(buffer.inSameContext(context));
         assertSame(context, buffer.getContext());
@@ -668,7 +668,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should return -1 for kernel arg index when not bound")
     void testGetKernelArgIndexNotBound() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         clKernel = createSimpleKernel("test_kernel");
 
@@ -680,7 +680,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should return correct kernel arg index after binding")
     void testGetKernelArgIndexAfterBinding() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
         buffer.write(42);
 
         clKernel = createKernelWithMultipleArgs("test_kernel");
@@ -697,8 +697,8 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should handle empty buffer name generation")
     void testEmptyNameGeneration() {
-        ParameterBuffer buffer1 = builder.setup(IntData.class, context);
-        ParameterBuffer buffer2 = builder.setup(IntData.class, context);
+        ParameterBuffer buffer1 = builder.setup(IntDataProcessor.class, context);
+        ParameterBuffer buffer2 = builder.setup(IntDataProcessor.class, context);
 
         assertNotNull(buffer1.getName());
         assertNotNull(buffer2.getName());
@@ -711,7 +711,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should handle write before and after kernel binding")
     void testWriteBeforeAndAfterBinding() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         buffer.write(10);
 
@@ -726,7 +726,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should handle zero value writes")
     void testWriteZeroValue() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         assertDoesNotThrow(() -> buffer.write(0));
 
@@ -736,7 +736,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should handle negative value writes")
     void testWriteNegativeValue() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         assertDoesNotThrow(() -> buffer.write(-42));
 
@@ -746,7 +746,7 @@ public class ParameterBufferTest {
     @Test
     @DisplayName("Should handle maximum integer value")
     void testWriteMaxIntValue() {
-        ParameterBuffer buffer = builder.setup(IntData.class, context);
+        ParameterBuffer buffer = builder.setup(IntDataProcessor.class, context);
 
         assertDoesNotThrow(() -> buffer.write(Integer.MAX_VALUE));
         assertDoesNotThrow(() -> buffer.write(Integer.MIN_VALUE));

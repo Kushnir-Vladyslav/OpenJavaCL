@@ -16,9 +16,9 @@
 
 package io.github.kushnirvladyslav.memory.data.typical;
 
-import io.github.kushnirvladyslav.memory.data.ConvertFromByteBuffer;
-import io.github.kushnirvladyslav.memory.data.ConvertToByteBuffer;
-import io.github.kushnirvladyslav.memory.data.Data;
+import io.github.kushnirvladyslav.memory.data.DataProcessor;
+import io.github.kushnirvladyslav.memory.data.FromByteBuffer;
+import io.github.kushnirvladyslav.memory.data.ToByteBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,48 +28,46 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
- * Implementation of boolean data type for OpenCL operations.
- * Supports boolean[], Boolean[], and Boolean types.
+ * Implementation of short integer data type for OpenCL operations.
+ * Supports short[], Short[], and Short primitive types.
  *
- * <p>This class provides conversion and buffer management for boolean data,
- * supporting both primitive and boxed types. Boolean values are stored as bytes
- * where 0 represents false and 1 represents true.
+ * <p>This class provides conversion and buffer management for short integer data,
+ * supporting both primitive and boxed types. It includes optimized handling for
+ * different input formats while maintaining type safety and null checking.
  *
  * <p>Example usage:
  * <pre>
- * BooleanData booleanData = new BooleanData();
+ * ShortDataProcessor shortData = new ShortDataProcessor();
  *
  * // Using primitive array
- * boolean[] primitiveArray = {true, false, true};
- * int size = booleanData.getSizeArray(primitiveArray);
- * ByteBuffer buffer = ByteBuffer.allocate(size * booleanData.getSizeStruct());
- * booleanData.convertToByteBuffer(buffer, primitiveArray);
+ * short[] primitiveArray = {1, 2, 3};
+ * int size = shortData.getSizeArray(primitiveArray);
+ * ByteBuffer buffer = ByteBuffer.allocate(size * shortData.getSizeStruct());
+ * shortData.convertToByteBuffer(buffer, primitiveArray);
  *
  * // Using boxed array
- * Boolean[] boxedArray = {true, false, true};
- * booleanData.convertToByteBuffer(buffer, boxedArray);
+ * Short[] boxedArray = {1, 2, 3};
+ * shortData.convertToByteBuffer(buffer, boxedArray);
  *
  * // Using single value
- * booleanData.convertToByteBuffer(buffer, true);
+ * shortData.convertToByteBuffer(buffer, (short)1);
  * </pre>
  *
  * @author Vladyslav Kushnir
- * @see Data
- * @see ConvertToByteBuffer
- * @see ConvertFromByteBuffer
+ * @see DataProcessor
+ * @see ToByteBuffer
+ * @see FromByteBuffer
  * @since 1.0
  */
-public class BooleanData implements Data, ConvertFromByteBuffer, ConvertToByteBuffer {
-    private static final Logger logger = LoggerFactory.getLogger(BooleanData.class);
-    private static final byte TRUE_VALUE = 1;
-    private static final byte FALSE_VALUE = 0;
+public class ShortDataProcessor implements DataProcessor, FromByteBuffer, ToByteBuffer {
+    private static final Logger logger = LoggerFactory.getLogger(ShortDataProcessor.class);
 
     /**
      * {@inheritDoc}
-     * Supports converting to boolean[], Boolean[], and Boolean types.
+     * Supports converting to short[], Short[], and Short types.
      *
      * @param buffer the source buffer
-     * @param target the target object (boolean[], Boolean[], or Boolean)
+     * @param target the target object (short[], Short[], or Short)
      * @throws IllegalArgumentException if target is null or of unsupported type
      * @throws BufferUnderflowException if buffer has insufficient data
      */
@@ -82,13 +80,13 @@ public class BooleanData implements Data, ConvertFromByteBuffer, ConvertToByteBu
         }
 
         try {
-            if (target instanceof boolean[]) {
-                convertBufferToPrimitiveArray(buffer, (boolean[]) target);
-            } else if (target instanceof Boolean[]) {
-                convertBufferToBoxedArray(buffer, (Boolean[]) target);
+            if (target instanceof short[]) {
+                convertBufferToPrimitiveArray(buffer, (short[]) target);
+            } else if (target instanceof Short[]) {
+                convertBufferToBoxedArray(buffer, (Short[]) target);
             } else {
                 String message = String.format(
-                        "Unsupported target type: %s. Expected boolean[], Boolean[] or Boolean",
+                        "Unsupported target type: %s. Expected short[], Short[] or Short",
                         target.getClass().getSimpleName()
                 );
                 logger.error(message);
@@ -102,49 +100,51 @@ public class BooleanData implements Data, ConvertFromByteBuffer, ConvertToByteBu
     }
 
     /**
-     * Converts ByteBuffer data to a primitive boolean array.
+     * Converts ByteBuffer data to a primitive short array.
      *
      * @param buffer the source buffer
      * @param target the target array
      */
-    private void convertBufferToPrimitiveArray(ByteBuffer buffer, boolean[] target) {
-        logger.debug("Converting buffer to primitive boolean array of length: {}", target.length);
-        for (int i = 0; i < target.length; i++) {
-            target[i] = buffer.get() == TRUE_VALUE;
-        }
+    private void convertBufferToPrimitiveArray(ByteBuffer buffer, short[] target) {
+        logger.debug("Converting buffer to primitive short array of length: {}", target.length);
+        buffer.asShortBuffer().get(target);
     }
 
     /**
-     * Converts ByteBuffer data to a boxed Boolean array.
+     * Converts ByteBuffer data to a boxed Short array.
      *
      * @param buffer the source buffer
      * @param target the target array
      */
-    private void convertBufferToBoxedArray(ByteBuffer buffer, Boolean[] target) {
-        logger.debug("Converting buffer to boxed Boolean array of length: {}", target.length);
-        for (int i = 0; i < target.length; i++) {
-            target[i] = buffer.get() == TRUE_VALUE;
+    private void convertBufferToBoxedArray(ByteBuffer buffer, Short[] target) {
+        logger.debug("Converting buffer to boxed Short array of length: {}", target.length);
+
+        short[] temp = new short[target.length];
+        buffer.asShortBuffer().get(temp);
+
+        for (int i = 0; i < temp.length; i++) {
+            target[i] = temp[i];
         }
     }
 
     /**
      * {@inheritDoc}
-     * Creates a new boolean array of the specified size.
+     * Creates a new short array of the specified size.
      *
      * @param size the size of the array to create
-     * @return a new boolean array
+     * @return a new short array
      * @throws IllegalArgumentException if size is negative
      */
     @Override
     public Object createArr(int size) {
         validateSize(size, "array size");
-        logger.debug("Creating new boolean array of size: {}", size);
-        return new boolean[size];
+        logger.debug("Creating new short array of size: {}", size);
+        return new short[size];
     }
 
     /**
      * {@inheritDoc}
-     * Supports converting from boolean[], Boolean[], and Boolean types.
+     * Supports converting from short[], Short[], and Short types.
      *
      * @param buffer the destination buffer
      * @param source the source data
@@ -159,15 +159,15 @@ public class BooleanData implements Data, ConvertFromByteBuffer, ConvertToByteBu
             throw new IllegalArgumentException(message);
         }
 
-        if (source instanceof boolean[]) {
-            convertPrimitiveArrayToBuffer(buffer, (boolean[]) source);
-        } else if (source instanceof Boolean[]) {
-            convertBoxedArrayToBuffer(buffer, (Boolean[]) source);
-        } else if (source instanceof Boolean) {
-            buffer.put(((Boolean) source) ? TRUE_VALUE : FALSE_VALUE);
+        if (source instanceof short[]) {
+            convertPrimitiveArrayToBuffer(buffer, (short[]) source);
+        } else if (source instanceof Short[]) {
+            convertBoxedArrayToBuffer(buffer, (Short[]) source);
+        } else if (source instanceof Short) {
+            buffer.putShort((Short) source);
         } else {
             String message = String.format(
-                    "Unsupported source type: %s. Expected boolean[], Boolean[] or Boolean",
+                    "Unsupported source type: %s. Expected short[], Short[] or Short",
                     source.getClass().getSimpleName()
             );
             logger.error(message);
@@ -176,56 +176,58 @@ public class BooleanData implements Data, ConvertFromByteBuffer, ConvertToByteBu
     }
 
     /**
-     * Converts a primitive boolean array to ByteBuffer.
+     * Converts a primitive short array to ByteBuffer.
      *
      * @param buffer the destination buffer
      * @param source the source array
      */
-    private void convertPrimitiveArrayToBuffer(ByteBuffer buffer, boolean[] source) {
-        logger.debug("Converting primitive boolean array of length: {}", source.length);
-        for (boolean value : source) {
-            buffer.put(value ? TRUE_VALUE : FALSE_VALUE);
-        }
+    private void convertPrimitiveArrayToBuffer(ByteBuffer buffer, short[] source) {
+        logger.debug("Converting primitive short array of length: {}", source.length);
+        buffer.asShortBuffer().put(source);
+        buffer.position(buffer.position() + source.length * Short.BYTES);
     }
 
     /**
-     * Converts a boxed Boolean array to ByteBuffer.
+     * Converts a boxed Short array to ByteBuffer.
      * Performs null checking on array elements.
      *
      * @param buffer the destination buffer
      * @param source the source array
      * @throws NullPointerException if any element is null
      */
-    private void convertBoxedArrayToBuffer(ByteBuffer buffer, Boolean[] source) {
-        logger.debug("Converting boxed Boolean array of length: {}", source.length);
+    private void convertBoxedArrayToBuffer(ByteBuffer buffer, Short[] source) {
+        logger.debug("Converting boxed Short array of length: {}", source.length);
 
-        if (Arrays.stream(source).anyMatch(b -> b == null)) {
-            String message = "Boolean array contains null elements";
+        if (Arrays.stream(source).anyMatch(s -> s == null)) {
+            String message = "Short array contains null elements";
             logger.error(message);
             throw new NullPointerException(message);
         }
 
-        for (Boolean value : source) {
-            buffer.put(value ? TRUE_VALUE : FALSE_VALUE);
+        short[] primitiveArray = new short[source.length];
+        for (int i = 0; i < source.length; i++) {
+            primitiveArray[i] = source[i];
         }
+        buffer.asShortBuffer().put(primitiveArray);
+        buffer.position(buffer.position() + source.length * Short.BYTES);
     }
 
     /**
      * {@inheritDoc}
      *
-     * @return size of boolean in bytes (1 byte)
+     * @return size of short in bytes (2 bytes)
      */
     @Override
     public int getSizeStruct() {
-        return 1; // Boolean stored as single byte
+        return Short.BYTES;
     }
 
     /**
      * {@inheritDoc}
-     * Supports boolean[], Boolean[], and Boolean types.
+     * Supports short[], Short[], and Short types.
      *
      * @param arr the array or value to measure
-     * @return the number of elements; 1 for single Boolean value
+     * @return the number of elements; 1 for single Short value
      * @throws IllegalArgumentException if the input is null or of unsupported type
      */
     @Override
@@ -236,16 +238,16 @@ public class BooleanData implements Data, ConvertFromByteBuffer, ConvertToByteBu
             throw new IllegalArgumentException(message);
         }
 
-        if (arr instanceof boolean[]) {
-            return ((boolean[]) arr).length;
-        } else if (arr instanceof Boolean[]) {
-            return ((Boolean[]) arr).length;
-        } else if (arr instanceof Boolean) {
+        if (arr instanceof short[]) {
+            return ((short[]) arr).length;
+        } else if (arr instanceof Short[]) {
+            return ((Short[]) arr).length;
+        } else if (arr instanceof Short) {
             return 1;
         }
 
         String message = String.format(
-                "Unsupported type: %s. Expected boolean[], Boolean[] or Boolean",
+                "Unsupported type: %s. Expected short[], Short[] or Short",
                 arr.getClass().getSimpleName()
         );
         logger.error(message);

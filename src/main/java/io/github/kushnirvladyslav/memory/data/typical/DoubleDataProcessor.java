@@ -16,9 +16,9 @@
 
 package io.github.kushnirvladyslav.memory.data.typical;
 
-import io.github.kushnirvladyslav.memory.data.ConvertFromByteBuffer;
-import io.github.kushnirvladyslav.memory.data.ConvertToByteBuffer;
-import io.github.kushnirvladyslav.memory.data.Data;
+import io.github.kushnirvladyslav.memory.data.DataProcessor;
+import io.github.kushnirvladyslav.memory.data.FromByteBuffer;
+import io.github.kushnirvladyslav.memory.data.ToByteBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,46 +28,46 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 /**
- * Implementation of short integer data type for OpenCL operations.
- * Supports short[], Short[], and Short primitive types.
+ * Implementation of double-precision floating-point data type for OpenCL operations.
+ * Supports double[], Double[], and Double primitive types.
  *
- * <p>This class provides conversion and buffer management for short integer data,
+ * <p>This class provides conversion and buffer management for double-precision data,
  * supporting both primitive and boxed types. It includes optimized handling for
  * different input formats while maintaining type safety and null checking.
  *
  * <p>Example usage:
  * <pre>
- * ShortData shortData = new ShortData();
+ * DoubleDataProcessor doubleData = new DoubleDataProcessor();
  *
  * // Using primitive array
- * short[] primitiveArray = {1, 2, 3};
- * int size = shortData.getSizeArray(primitiveArray);
- * ByteBuffer buffer = ByteBuffer.allocate(size * shortData.getSizeStruct());
- * shortData.convertToByteBuffer(buffer, primitiveArray);
+ * double[] primitiveArray = {1.0, 2.0, 3.0};
+ * int size = doubleData.getSizeArray(primitiveArray);
+ * ByteBuffer buffer = ByteBuffer.allocate(size * doubleData.getSizeStruct());
+ * doubleData.convertToByteBuffer(buffer, primitiveArray);
  *
  * // Using boxed array
- * Short[] boxedArray = {1, 2, 3};
- * shortData.convertToByteBuffer(buffer, boxedArray);
+ * Double[] boxedArray = {1.0, 2.0, 3.0};
+ * doubleData.convertToByteBuffer(buffer, boxedArray);
  *
  * // Using single value
- * shortData.convertToByteBuffer(buffer, (short)1);
+ * doubleData.convertToByteBuffer(buffer, 1.0);
  * </pre>
  *
  * @author Vladyslav Kushnir
- * @see Data
- * @see ConvertToByteBuffer
- * @see ConvertFromByteBuffer
+ * @see DataProcessor
+ * @see ToByteBuffer
+ * @see FromByteBuffer
  * @since 1.0
  */
-public class ShortData implements Data, ConvertFromByteBuffer, ConvertToByteBuffer {
-    private static final Logger logger = LoggerFactory.getLogger(ShortData.class);
+public class DoubleDataProcessor implements DataProcessor, FromByteBuffer, ToByteBuffer {
+    private static final Logger logger = LoggerFactory.getLogger(DoubleDataProcessor.class);
 
     /**
      * {@inheritDoc}
-     * Supports converting to short[], Short[], and Short types.
+     * Supports converting to double[], Double[], and Double types.
      *
      * @param buffer the source buffer
-     * @param target the target object (short[], Short[], or Short)
+     * @param target the target object (double[], Double[], or Double)
      * @throws IllegalArgumentException if target is null or of unsupported type
      * @throws BufferUnderflowException if buffer has insufficient data
      */
@@ -80,13 +80,13 @@ public class ShortData implements Data, ConvertFromByteBuffer, ConvertToByteBuff
         }
 
         try {
-            if (target instanceof short[]) {
-                convertBufferToPrimitiveArray(buffer, (short[]) target);
-            } else if (target instanceof Short[]) {
-                convertBufferToBoxedArray(buffer, (Short[]) target);
+            if (target instanceof double[]) {
+                convertBufferToPrimitiveArray(buffer, (double[]) target);
+            } else if (target instanceof Double[]) {
+                convertBufferToBoxedArray(buffer, (Double[]) target);
             } else {
                 String message = String.format(
-                        "Unsupported target type: %s. Expected short[], Short[] or Short",
+                        "Unsupported target type: %s. Expected double[], Double[] or Double",
                         target.getClass().getSimpleName()
                 );
                 logger.error(message);
@@ -100,27 +100,27 @@ public class ShortData implements Data, ConvertFromByteBuffer, ConvertToByteBuff
     }
 
     /**
-     * Converts ByteBuffer data to a primitive short array.
+     * Converts ByteBuffer data to a primitive double array.
      *
      * @param buffer the source buffer
      * @param target the target array
      */
-    private void convertBufferToPrimitiveArray(ByteBuffer buffer, short[] target) {
-        logger.debug("Converting buffer to primitive short array of length: {}", target.length);
-        buffer.asShortBuffer().get(target);
+    private void convertBufferToPrimitiveArray(ByteBuffer buffer, double[] target) {
+        logger.debug("Converting buffer to primitive double array of length: {}", target.length);
+        buffer.asDoubleBuffer().get(target);
     }
 
     /**
-     * Converts ByteBuffer data to a boxed Short array.
+     * Converts ByteBuffer data to a boxed Double array.
      *
      * @param buffer the source buffer
      * @param target the target array
      */
-    private void convertBufferToBoxedArray(ByteBuffer buffer, Short[] target) {
-        logger.debug("Converting buffer to boxed Short array of length: {}", target.length);
+    private void convertBufferToBoxedArray(ByteBuffer buffer, Double[] target) {
+        logger.debug("Converting buffer to boxed Double array of length: {}", target.length);
 
-        short[] temp = new short[target.length];
-        buffer.asShortBuffer().get(temp);
+        double[] temp = new double[target.length];
+        buffer.asDoubleBuffer().get(temp);
 
         for (int i = 0; i < temp.length; i++) {
             target[i] = temp[i];
@@ -129,22 +129,22 @@ public class ShortData implements Data, ConvertFromByteBuffer, ConvertToByteBuff
 
     /**
      * {@inheritDoc}
-     * Creates a new short array of the specified size.
+     * Creates a new double array of the specified size.
      *
      * @param size the size of the array to create
-     * @return a new short array
+     * @return a new double array
      * @throws IllegalArgumentException if size is negative
      */
     @Override
     public Object createArr(int size) {
         validateSize(size, "array size");
-        logger.debug("Creating new short array of size: {}", size);
-        return new short[size];
+        logger.debug("Creating new double array of size: {}", size);
+        return new double[size];
     }
 
     /**
      * {@inheritDoc}
-     * Supports converting from short[], Short[], and Short types.
+     * Supports converting from double[], Double[], and Double types.
      *
      * @param buffer the destination buffer
      * @param source the source data
@@ -159,15 +159,15 @@ public class ShortData implements Data, ConvertFromByteBuffer, ConvertToByteBuff
             throw new IllegalArgumentException(message);
         }
 
-        if (source instanceof short[]) {
-            convertPrimitiveArrayToBuffer(buffer, (short[]) source);
-        } else if (source instanceof Short[]) {
-            convertBoxedArrayToBuffer(buffer, (Short[]) source);
-        } else if (source instanceof Short) {
-            buffer.putShort((Short) source);
+        if (source instanceof double[]) {
+            convertPrimitiveArrayToBuffer(buffer, (double[]) source);
+        } else if (source instanceof Double[]) {
+            convertBoxedArrayToBuffer(buffer, (Double[]) source);
+        } else if (source instanceof Double) {
+            buffer.putDouble((Double) source);
         } else {
             String message = String.format(
-                    "Unsupported source type: %s. Expected short[], Short[] or Short",
+                    "Unsupported source type: %s. Expected double[], Double[] or Double",
                     source.getClass().getSimpleName()
             );
             logger.error(message);
@@ -176,58 +176,58 @@ public class ShortData implements Data, ConvertFromByteBuffer, ConvertToByteBuff
     }
 
     /**
-     * Converts a primitive short array to ByteBuffer.
+     * Converts a primitive double array to ByteBuffer.
      *
      * @param buffer the destination buffer
      * @param source the source array
      */
-    private void convertPrimitiveArrayToBuffer(ByteBuffer buffer, short[] source) {
-        logger.debug("Converting primitive short array of length: {}", source.length);
-        buffer.asShortBuffer().put(source);
-        buffer.position(buffer.position() + source.length * Short.BYTES);
+    private void convertPrimitiveArrayToBuffer(ByteBuffer buffer, double[] source) {
+        logger.debug("Converting primitive double array of length: {}", source.length);
+        buffer.asDoubleBuffer().put(source);
+        buffer.position(buffer.position() + source.length * Double.BYTES);
     }
 
     /**
-     * Converts a boxed Short array to ByteBuffer.
+     * Converts a boxed Double array to ByteBuffer.
      * Performs null checking on array elements.
      *
      * @param buffer the destination buffer
      * @param source the source array
      * @throws NullPointerException if any element is null
      */
-    private void convertBoxedArrayToBuffer(ByteBuffer buffer, Short[] source) {
-        logger.debug("Converting boxed Short array of length: {}", source.length);
+    private void convertBoxedArrayToBuffer(ByteBuffer buffer, Double[] source) {
+        logger.debug("Converting boxed Double array of length: {}", source.length);
 
-        if (Arrays.stream(source).anyMatch(s -> s == null)) {
-            String message = "Short array contains null elements";
+        if (Arrays.stream(source).anyMatch(d -> d == null)) {
+            String message = "Double array contains null elements";
             logger.error(message);
             throw new NullPointerException(message);
         }
 
-        short[] primitiveArray = new short[source.length];
+        double[] primitiveArray = new double[source.length];
         for (int i = 0; i < source.length; i++) {
             primitiveArray[i] = source[i];
         }
-        buffer.asShortBuffer().put(primitiveArray);
-        buffer.position(buffer.position() + source.length * Short.BYTES);
+        buffer.asDoubleBuffer().put(primitiveArray);
+        buffer.position(buffer.position() + source.length * Double.BYTES);
     }
 
     /**
      * {@inheritDoc}
      *
-     * @return size of short in bytes (2 bytes)
+     * @return size of double in bytes (8 bytes)
      */
     @Override
     public int getSizeStruct() {
-        return Short.BYTES;
+        return Double.BYTES;
     }
 
     /**
      * {@inheritDoc}
-     * Supports short[], Short[], and Short types.
+     * Supports double[], Double[], and Double types.
      *
      * @param arr the array or value to measure
-     * @return the number of elements; 1 for single Short value
+     * @return the number of elements; 1 for single Double value
      * @throws IllegalArgumentException if the input is null or of unsupported type
      */
     @Override
@@ -238,16 +238,16 @@ public class ShortData implements Data, ConvertFromByteBuffer, ConvertToByteBuff
             throw new IllegalArgumentException(message);
         }
 
-        if (arr instanceof short[]) {
-            return ((short[]) arr).length;
-        } else if (arr instanceof Short[]) {
-            return ((Short[]) arr).length;
-        } else if (arr instanceof Short) {
+        if (arr instanceof double[]) {
+            return ((double[]) arr).length;
+        } else if (arr instanceof Double[]) {
+            return ((Double[]) arr).length;
+        } else if (arr instanceof Double) {
             return 1;
         }
 
         String message = String.format(
-                "Unsupported type: %s. Expected short[], Short[] or Short",
+                "Unsupported type: %s. Expected double[], Double[] or Double",
                 arr.getClass().getSimpleName()
         );
         logger.error(message);

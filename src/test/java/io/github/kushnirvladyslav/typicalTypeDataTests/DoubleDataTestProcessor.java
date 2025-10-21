@@ -1,17 +1,17 @@
 package io.github.kushnirvladyslav.typicalTypeDataTests;
 
-import io.github.kushnirvladyslav.memory.data.typical.DoubleData;
+import io.github.kushnirvladyslav.memory.data.typical.DoubleDataProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 import static org.junit.jupiter.api.Assertions.*;
 
-class DoubleDataTest {
-    private DoubleData doubleData;
+class DoubleDataTestProcessor {
+    private DoubleDataProcessor doubleData;
 
     @BeforeEach
     void setUp() {
-        doubleData = new DoubleData();
+        doubleData = new DoubleDataProcessor();
     }
 
     @Test

@@ -20,9 +20,9 @@ import io.github.kushnirvladyslav.ClContext;
 import io.github.kushnirvladyslav.exceptions.BufferDestructionException;
 import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
-import io.github.kushnirvladyslav.memory.data.ConvertFromByteBuffer;
-import io.github.kushnirvladyslav.memory.data.ConvertToByteBuffer;
-import io.github.kushnirvladyslav.memory.data.Data;
+import io.github.kushnirvladyslav.memory.data.DataProcessor;
+import io.github.kushnirvladyslav.memory.data.FromByteBuffer;
+import io.github.kushnirvladyslav.memory.data.ToByteBuffer;
 import io.github.kushnirvladyslav.memory.util.DeviceMemoryAccess;
 import io.github.kushnirvladyslav.memory.util.HostMemoryAccess;
 import io.github.kushnirvladyslav.util.CLVersion;
@@ -184,14 +184,14 @@ public abstract class AbstractGlobalBuffer
 
     private void validateInterfaces() {
         if (this instanceof Readable) {
-            if (!(dataObject instanceof ConvertFromByteBuffer)) {
-                throwInitError("Data class must implement ConvertFromByteBuffer interface for readable buffers");
+            if (!(dataProcessorObject instanceof FromByteBuffer)) {
+                throwInitError("DataProcessor class must implement FromByteBuffer interface for readable buffers");
             }
         }
 
         if (this instanceof Writable) {
-            if (!(dataObject instanceof ConvertToByteBuffer)) {
-                throwInitError("Data class must implement ConvertToByteBuffer interface for writable buffers");
+            if (!(dataProcessorObject instanceof ToByteBuffer)) {
+                throwInitError("DataProcessor class must implement ToByteBuffer interface for writable buffers");
             }
         }
 
@@ -212,13 +212,13 @@ public abstract class AbstractGlobalBuffer
         }
 
         if (copyHostBuffer) {
-            if (dataObject instanceof ConvertFromByteBuffer) {
-                ConvertFromByteBuffer converter = (ConvertFromByteBuffer) this;
+            if (dataProcessorObject instanceof FromByteBuffer) {
+                FromByteBuffer converter = (FromByteBuffer) this;
                 hostBuffer = converter.createArr(capacity);
                 logger.debug("Created host buffer copy for buffer '{}' with capacity {}",
                         getBufferName(), capacity);
             } else {
-                throwInitError("Data class must implement ConvertFromByteBuffer interface when copyHostBuffer is true");
+                throwInitError("DataProcessor class must implement FromByteBuffer interface when copyHostBuffer is true");
             }
         }
 
@@ -260,7 +260,7 @@ public abstract class AbstractGlobalBuffer
             newClBuffer = CL10.clCreateBuffer(
                     context.getContext(),
                     deviceMemoryAccess.getFlag() | hostMemoryAccess.getFlag(),
-                    capacity * dataObject.getSizeStruct(),
+                    capacity * dataProcessorObject.getSizeStruct(),
                     errorCode
             );
 
@@ -294,11 +294,11 @@ public abstract class AbstractGlobalBuffer
      * @throws BufferInitializationException if any required settings are missing or invalid
      * @throws BufferDestructionException if the buffer has been closed
      */
-    public <T extends Data> void setup (Class<T> clazz,
-                       ClContext context,
-                       boolean copyNativeBuffer,
-                       boolean copyHostBuffer,
-                       int initSize) {
+    public <T extends DataProcessor> void setup (Class<T> clazz,
+                                                 ClContext context,
+                                                 boolean copyNativeBuffer,
+                                                 boolean copyHostBuffer,
+                                                 int initSize) {
         logger.debug("Setting up buffer '{}' with size {}", getBufferName(), initSize);
         withDataClass(clazz);
         withOpenClContext(context);
@@ -331,12 +331,12 @@ public abstract class AbstractGlobalBuffer
      * @throws BufferInitializationException if any required settings are missing or invalid
      * @throws BufferDestructionException if the buffer has been closed
      */
-    public <T extends Data> void setup (String bufferName,
-                       Class<T> clazz,
-                       ClContext context,
-                       boolean copyNativeBuffer,
-                       boolean copyHostBuffer,
-                       int initSize) {
+    public <T extends DataProcessor> void setup (String bufferName,
+                                                 Class<T> clazz,
+                                                 ClContext context,
+                                                 boolean copyNativeBuffer,
+                                                 boolean copyHostBuffer,
+                                                 int initSize) {
         logger.debug("Setting up buffer with name '{}' and size {}", bufferName, initSize);
         withBufferName(bufferName);
         withDataClass(clazz);

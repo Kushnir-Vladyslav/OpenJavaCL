@@ -1,17 +1,17 @@
 package io.github.kushnirvladyslav.typicalTypeDataTests;
 
-import io.github.kushnirvladyslav.memory.data.typical.ByteData;
+import io.github.kushnirvladyslav.memory.data.typical.ByteDataProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 import static org.junit.jupiter.api.Assertions.*;
 
-class ByteDataTest {
-    private ByteData byteData;
+class ByteDataTestProcessor {
+    private ByteDataProcessor byteData;
 
     @BeforeEach
     void setUp() {
-        byteData = new ByteData();
+        byteData = new ByteDataProcessor();
     }
 
     @Test

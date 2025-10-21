@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Example implementation:
  * <pre>
- * public class FloatData implements Data {
+ * public class FloatDataProcessor implements DataProcessor {
  *     {@literal @}Override
  *     public int getSizeStruct() {
  *         return Float.BYTES;
@@ -46,8 +46,8 @@ import org.slf4j.LoggerFactory;
  * @author Vladyslav Kushnir
  * @since 1.0
  */
-public interface Data {
-    Logger logger = LoggerFactory.getLogger(Data.class);
+public interface DataProcessor {
+    Logger logger = LoggerFactory.getLogger(DataProcessor.class);
 
     /**
      * Gets the size in bytes of a single element of this data type.

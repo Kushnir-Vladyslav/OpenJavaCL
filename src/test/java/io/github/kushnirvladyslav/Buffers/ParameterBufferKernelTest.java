@@ -17,8 +17,8 @@
 package io.github.kushnirvladyslav.Buffers;
 
 import io.github.kushnirvladyslav.*;
-import io.github.kushnirvladyslav.memory.data.typical.FloatData;
-import io.github.kushnirvladyslav.memory.data.typical.IntData;
+import io.github.kushnirvladyslav.memory.data.typical.FloatDataProcessor;
+import io.github.kushnirvladyslav.memory.data.typical.IntDataProcessor;
 import io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.ParameterBuffer;
 import io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.ParameterBufferBuilder;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
@@ -207,7 +207,7 @@ public class ParameterBufferKernelTest {
             assertEquals(CL_SUCCESS, err, "Failed to write buffer to device");
 
             clKernel = createKernelFromSource(kernelSource, "add_value");
-            ParameterBuffer paramBuffer = builder.setup("addValue", IntData.class, context);
+            ParameterBuffer paramBuffer = builder.setup("addValue", IntDataProcessor.class, context);
             paramBuffer.write(addValue);
 
             PointerBuffer clMemoryPointer = stack.mallocPointer(1);
@@ -273,7 +273,7 @@ public class ParameterBufferKernelTest {
             );
 
             clKernel = createKernelFromSource(kernelSource, "multiply_value");
-            ParameterBuffer paramBuffer = builder.setup("multiplier", FloatData.class, context);
+            ParameterBuffer paramBuffer = builder.setup("multiplier", FloatDataProcessor.class, context);
 
 
             PointerBuffer clMemoryPointer = stack.mallocPointer(1);
@@ -332,7 +332,7 @@ public class ParameterBufferKernelTest {
             clEnqueueWriteBuffer(context.getCommandQueue(), clMemory, true, 0, buffer, null, null);
 
             clKernel = createKernelFromSource(kernelSource, "add_value");
-            ParameterBuffer paramBuffer = builder.setup("value", IntData.class, context);
+            ParameterBuffer paramBuffer = builder.setup("value", IntDataProcessor.class, context);
 
             PointerBuffer clMemoryPointer = stack.mallocPointer(1);
             clMemoryPointer.put(clMemory);
@@ -389,10 +389,10 @@ public class ParameterBufferKernelTest {
 
             clKernel = createKernelFromSource(kernelSource, "compute");
 
-            ParameterBuffer addBuffer = builder.setup("add", IntData.class, context);
+            ParameterBuffer addBuffer = builder.setup("add", IntDataProcessor.class, context);
             addBuffer.write(addValue);
 
-            ParameterBuffer multiplyBuffer = builder.setup("multiply", IntData.class, context);
+            ParameterBuffer multiplyBuffer = builder.setup("multiply", IntDataProcessor.class, context);
             multiplyBuffer.write(multiplyValue);
 
             PointerBuffer clMemoryPointer = stack.mallocPointer(1);
@@ -445,7 +445,7 @@ public class ParameterBufferKernelTest {
             clEnqueueWriteBuffer(context.getCommandQueue(), clMemory, true, 0, buffer, null, null);
 
             clKernel = createKernelFromSource(kernelSource, "add_value");
-            ParameterBuffer paramBuffer = builder.setup("value", IntData.class, context);
+            ParameterBuffer paramBuffer = builder.setup("value", IntDataProcessor.class, context);
             paramBuffer.write(addValue);
 
             PointerBuffer clMemoryPointer = stack.mallocPointer(1);
@@ -490,7 +490,7 @@ public class ParameterBufferKernelTest {
             clEnqueueWriteBuffer(context.getCommandQueue(), clMemory, true, 0, buffer, null, null);
 
             clKernel = createKernelFromSource(kernelSource, "multiply_value");
-            ParameterBuffer paramBuffer = builder.setup("multiplier", IntData.class, context);
+            ParameterBuffer paramBuffer = builder.setup("multiplier", IntDataProcessor.class, context);
             paramBuffer.write(0);
 
             PointerBuffer clMemoryPointer = stack.mallocPointer(1);
@@ -538,7 +538,7 @@ public class ParameterBufferKernelTest {
             clEnqueueWriteBuffer(context.getCommandQueue(), clMemory, true, 0, inputBuffer, null, null);
 
             clKernel = createKernelFromSource(kernelSource, "add_value");
-            ParameterBuffer paramBuffer = builder.setup("value", IntData.class, context);
+            ParameterBuffer paramBuffer = builder.setup("value", IntDataProcessor.class, context);
             paramBuffer.write(addValue);
 
             PointerBuffer clMemoryPointer = stack.mallocPointer(1);
@@ -589,7 +589,7 @@ public class ParameterBufferKernelTest {
             clEnqueueWriteBuffer(context.getCommandQueue(), clMemory, true, 0, buffer, null, null);
 
             clKernel = createKernelFromSource(kernelSource, "add_value");
-            ParameterBuffer paramBuffer = builder.setup("value", IntData.class, context);
+            ParameterBuffer paramBuffer = builder.setup("value", IntDataProcessor.class, context);
 
             PointerBuffer clMemoryPointer = stack.mallocPointer(1);
             clMemoryPointer.put(clMemory);

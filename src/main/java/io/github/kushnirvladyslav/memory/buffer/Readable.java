@@ -17,8 +17,8 @@
 package io.github.kushnirvladyslav.memory.buffer;
 
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
-import io.github.kushnirvladyslav.memory.data.ConvertFromByteBuffer;
-import io.github.kushnirvladyslav.memory.data.Data;
+import io.github.kushnirvladyslav.memory.data.DataProcessor;
+import io.github.kushnirvladyslav.memory.data.FromByteBuffer;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
 import org.lwjgl.opencl.CL10;
 import org.lwjgl.system.MemoryUtil;
@@ -74,7 +74,7 @@ public interface Readable<T extends AbstractGlobalBuffer & Readable<T>> {
             targetArray = buffer.hostBuffer;
             logger.trace("Using host buffer directly for '{}'", buffer.getBufferName());
         } else {
-            ConvertFromByteBuffer converter = (ConvertFromByteBuffer) buffer.dataObject;
+            FromByteBuffer converter = (FromByteBuffer) buffer.dataProcessorObject;
             targetArray = converter.createArr(buffer.size);
 
             logger.trace("Created new array for buffer '{}' with size {}",
@@ -125,7 +125,7 @@ public interface Readable<T extends AbstractGlobalBuffer & Readable<T>> {
             throw new IllegalArgumentException(message);
         }
 
-        ConvertFromByteBuffer converter = (ConvertFromByteBuffer) buffer.dataObject;
+        FromByteBuffer converter = (FromByteBuffer) buffer.dataProcessorObject;
         Object targetArray = converter.createArr(buffer.size - offset);
 
         logger.debug("Reading buffer '{}' from offset {} into new array",
@@ -190,7 +190,7 @@ public interface Readable<T extends AbstractGlobalBuffer & Readable<T>> {
             throw new IllegalArgumentException(message);
         }
 
-        ConvertFromByteBuffer converter = (ConvertFromByteBuffer) buffer.dataObject;
+        FromByteBuffer converter = (FromByteBuffer) buffer.dataProcessorObject;
         Object targetArray = converter.createArr(len - offset);
 
         logger.debug("Reading {} elements from buffer '{}' starting at offset {}",
@@ -222,19 +222,19 @@ public interface Readable<T extends AbstractGlobalBuffer & Readable<T>> {
         }
 
         if (offset + len > buffer.size) {
-            logger.warn("Reading uninitialized data: offset={}, length={}, size={} for buffer '{}'",
+            logger.warn("Reading uninitialized dataProcessor: offset={}, length={}, size={} for buffer '{}'",
                     offset, len, buffer.size, buffer.getBufferName());
         }
 
-        Data data = buffer.dataObject;
-        ConvertFromByteBuffer converter = (ConvertFromByteBuffer) data;
+        DataProcessor dataProcessor = buffer.dataProcessorObject;
+        FromByteBuffer converter = (FromByteBuffer) dataProcessor;
         ByteBuffer tempNativeBuffer = null;
 
         try {
             if (buffer.copyHostBuffer) {
                 tempNativeBuffer = (ByteBuffer) buffer.nativeBuffer.rewind().limit(len);
             } else {
-                tempNativeBuffer = MemoryUtil.memAlloc(len * data.getSizeStruct());
+                tempNativeBuffer = MemoryUtil.memAlloc(len * dataProcessor.getSizeStruct());
                 if (tempNativeBuffer == null) {
                     throw new IllegalArgumentException("Failed to allocate temporary native buffer");
                 }
@@ -247,7 +247,7 @@ public interface Readable<T extends AbstractGlobalBuffer & Readable<T>> {
                     buffer.context.getCommandQueue(),
                     buffer.clBuffer,
                     true,
-                    offset * data.getSizeStruct(),
+                    offset * dataProcessor.getSizeStruct(),
                     tempNativeBuffer,
                     null,
                     null
@@ -351,7 +351,7 @@ public interface Readable<T extends AbstractGlobalBuffer & Readable<T>> {
         }
 
         int len = (buffer.size - offset)
-                * buffer.dataObject.getSizeStruct();
+                * buffer.dataProcessorObject.getSizeStruct();
         ByteBuffer tempNativeBuffer = (ByteBuffer) buffer
                 .nativeBuffer
                 .position(0)
@@ -377,7 +377,7 @@ public interface Readable<T extends AbstractGlobalBuffer & Readable<T>> {
     default ByteBuffer readBytes(int offset, ByteBuffer tempNativeBuffer) {
         @SuppressWarnings("unchecked")
         T buffer = (T) this;
-        Data data = buffer.dataObject;
+        DataProcessor dataProcessor = buffer.dataProcessorObject;
 
         if (tempNativeBuffer == null) {
             String message = String.format("Temporary native buffer cannot be null for buffer '%s'",
@@ -386,7 +386,7 @@ public interface Readable<T extends AbstractGlobalBuffer & Readable<T>> {
             throw new IllegalArgumentException(message);
         }
 
-        int elementCount = tempNativeBuffer.capacity() / data.getSizeStruct();
+        int elementCount = tempNativeBuffer.capacity() / dataProcessor.getSizeStruct();
         if (offset + elementCount > buffer.capacity) {
             String message = String.format(
                     "Attempt to read outside buffer bounds: offset=%d, elements=%d, capacity=%d for buffer '%s'",
@@ -396,7 +396,7 @@ public interface Readable<T extends AbstractGlobalBuffer & Readable<T>> {
         }
 
         if (offset + elementCount > buffer.size) {
-            logger.warn("Reading uninitialized data: offset={}, elements={}, size={} for buffer '{}'",
+            logger.warn("Reading uninitialized dataProcessor: offset={}, elements={}, size={} for buffer '{}'",
                     offset, elementCount, buffer.size, buffer.getBufferName());
         }
 
@@ -408,7 +408,7 @@ public interface Readable<T extends AbstractGlobalBuffer & Readable<T>> {
                     buffer.context.getCommandQueue(),
                     buffer.clBuffer,
                     true,
-                    offset * data.getSizeStruct(),
+                    offset * dataProcessor.getSizeStruct(),
                     (ByteBuffer) tempNativeBuffer.rewind(),
                     null,
                     null

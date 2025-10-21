@@ -52,6 +52,6 @@ public class GlobalStaticWriteOnlyBuffer
     @Override
     public String toString() {
         return String.format("GlobalStaticWriteOnlyBuffer{name='%s', capacity=%d, dataClass=%s}",
-                getBufferName(), capacity, dataObject.getClass().getSimpleName());
+                getBufferName(), capacity, dataProcessorObject.getClass().getSimpleName());
     }
 }

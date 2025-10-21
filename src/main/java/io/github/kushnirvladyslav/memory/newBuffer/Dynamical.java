@@ -86,7 +86,7 @@ interface Dynamical
             try (MemoryStack stack = MemoryStack.stackPush()){
                 PointerBuffer thisEvent = stack.mallocPointer(1);
 
-                int dataSize = buffer.dataObject.getSizeStruct();
+                int dataSize = buffer.dataProcessor.getSizeStruct();
 
                 buffer.capacity = (int) (newCapacity * getCapacityMultiplier());
                 buffer.clMem = buffer.createClMem();
@@ -157,7 +157,7 @@ interface Dynamical
             try (MemoryStack stack = MemoryStack.stackPush()){
                 PointerBuffer thisEvent = stack.mallocPointer(1);
 
-                int dataSize = buffer.dataObject.getSizeStruct();
+                int dataSize = buffer.dataProcessor.getSizeStruct();
 
                 buffer.capacity = actualNewCapacity;
                 buffer.clMem = buffer.createClMem();

@@ -53,6 +53,6 @@ public class GlobalDynamicReadOnlyBuffer
     @Override
     public String toString() {
         return String.format("GlobalDynamicReadOnlyBuffer{name='%s', capacity=%d, dataClass=%s}",
-                getBufferName(), capacity, dataObject.getClass().getSimpleName());
+                getBufferName(), capacity, dataProcessorObject.getClass().getSimpleName());
     }
 }

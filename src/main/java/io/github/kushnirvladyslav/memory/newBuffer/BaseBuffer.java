@@ -18,7 +18,7 @@ package io.github.kushnirvladyslav.memory.newBuffer;
 
 import io.github.kushnirvladyslav.ClContext;
 import io.github.kushnirvladyslav.exceptions.BufferDestructionException;
-import io.github.kushnirvladyslav.memory.data.Data;
+import io.github.kushnirvladyslav.memory.data.DataProcessor;
 import io.github.kushnirvladyslav.util.StatusCL;
 
 import org.slf4j.Logger;
@@ -31,12 +31,12 @@ public abstract class BaseBuffer implements AutoCloseable {
     protected StatusCL status;
 
     protected final ClContext context;
-    protected final Data dataObject;
+    protected final DataProcessor dataProcessor;
 
     protected BaseBuffer(BaseBufferBuilder<?, ?> builder) {
         this.name = builder.getName();
         this.context = builder.getContext();
-        this.dataObject = builder.getDataObject();
+        this.dataProcessor = builder.getDataObject();
 
         this.status = StatusCL.RUNNING;
     }
@@ -60,9 +60,9 @@ public abstract class BaseBuffer implements AutoCloseable {
         return this.context.equals(context);
     }
 
-    public Class<? extends Data> getDataClass(){
+    public Class<? extends DataProcessor> getDataClass(){
         checkNotClosed();
-        return dataObject.getClass();
+        return dataProcessor.getClass();
     }
 
     protected void checkNotClosed() {
@@ -103,7 +103,7 @@ public abstract class BaseBuffer implements AutoCloseable {
                 getClass().getSimpleName(),
                 name,
                 status,
-                dataObject.getClass().getSimpleName());
+                dataProcessor.getClass().getSimpleName());
     }
 
     @Override

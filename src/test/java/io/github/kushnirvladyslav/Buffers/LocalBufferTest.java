@@ -16,13 +16,13 @@
 
 package io.github.kushnirvladyslav.Buffers;
 
-import io.github.kushnirvladyslav.memory.data.typical.FloatData;
+import io.github.kushnirvladyslav.memory.data.typical.FloatDataProcessor;
+import io.github.kushnirvladyslav.memory.data.typical.IntDataProcessor;
 import io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.LocalBuffer;
 import io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.LocalBufferBuilder;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
 import io.github.kushnirvladyslav.*;
 import io.github.kushnirvladyslav.exceptions.BufferDestructionException;
-import io.github.kushnirvladyslav.memory.data.typical.IntData;
 import io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.ParameterBuffer;
 import io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.ParameterBufferBuilder;
 import org.junit.jupiter.api.*;
@@ -189,11 +189,11 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should create LocalBuffer with valid parameters")
     void testCreateLocalBuffer() {
-        LocalBuffer buffer = builder.setup(IntData.class, context, 256);
+        LocalBuffer buffer = builder.setup(IntDataProcessor.class, context, 256);
 
         assertNotNull(buffer);
         assertFalse(buffer.isClosed());
-        assertEquals(IntData.class, buffer.getDataClass());
+        assertEquals(IntDataProcessor.class, buffer.getDataClass());
         assertTrue(buffer.inSameContext(context));
         assertEquals(256, buffer.getSize());
 
@@ -204,7 +204,7 @@ public class LocalBufferTest {
     @DisplayName("Should create LocalBuffer with custom name")
     void testCreateLocalBufferWithName() {
         String bufferName = "LocalCache";
-        LocalBuffer buffer = builder.setup(bufferName, IntData.class, context, 128);
+        LocalBuffer buffer = builder.setup(bufferName, IntDataProcessor.class, context, 128);
 
         assertNotNull(buffer);
         assertEquals(bufferName, buffer.getName());
@@ -217,7 +217,7 @@ public class LocalBufferTest {
     @DisplayName("Should throw exception when size is zero")
     void testCreateBufferWithZeroSize() {
         assertThrows(IllegalArgumentException.class, () -> {
-            builder.setup(IntData.class, context, 0);
+            builder.setup(IntDataProcessor.class, context, 0);
         });
     }
 
@@ -225,7 +225,7 @@ public class LocalBufferTest {
     @DisplayName("Should throw exception when size is negative")
     void testCreateBufferWithNegativeSize() {
         assertThrows(IllegalArgumentException.class, () -> {
-            builder.setup(IntData.class, context, -10);
+            builder.setup(IntDataProcessor.class, context, -10);
         });
     }
 
@@ -233,7 +233,7 @@ public class LocalBufferTest {
     @DisplayName("Should throw exception when context is null")
     void testCreateBufferWithNullContext() {
         assertThrows(IllegalArgumentException.class, () -> {
-            builder.setup(IntData.class, null, 256);
+            builder.setup(IntDataProcessor.class, null, 256);
         });
     }
 
@@ -251,7 +251,7 @@ public class LocalBufferTest {
         OpenCL.destroyContext(context);
 
         assertThrows(IllegalArgumentException.class, () -> {
-            builder.setup(IntData.class, context, 256);
+            builder.setup(IntDataProcessor.class, context, 256);
         });
     }
 
@@ -260,7 +260,7 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should resize buffer successfully")
     void testResizeBuffer() {
-        LocalBuffer buffer = builder.setup(IntData.class, context, 128);
+        LocalBuffer buffer = builder.setup(IntDataProcessor.class, context, 128);
 
         assertEquals(128, buffer.getSize());
 
@@ -273,7 +273,7 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should throw exception when resizing to zero")
     void testResizeToZero() {
-        LocalBuffer buffer = builder.setup(IntData.class, context, 128);
+        LocalBuffer buffer = builder.setup(IntDataProcessor.class, context, 128);
 
         assertThrows(IllegalArgumentException.class, () -> {
             buffer.resize(0);
@@ -285,7 +285,7 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should throw exception when resizing to negative")
     void testResizeToNegative() {
-        LocalBuffer buffer = builder.setup(IntData.class, context, 128);
+        LocalBuffer buffer = builder.setup(IntDataProcessor.class, context, 128);
 
         assertThrows(IllegalArgumentException.class, () -> {
             buffer.resize(-5);
@@ -297,7 +297,7 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should throw exception when resizing closed buffer")
     void testResizeClosedBuffer() {
-        LocalBuffer buffer = builder.setup(IntData.class, context, 128);
+        LocalBuffer buffer = builder.setup(IntDataProcessor.class, context, 128);
         buffer.destroy();
 
         assertThrows(BufferDestructionException.class, () -> {
@@ -310,7 +310,7 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should bind buffer to kernel successfully")
     void testBindToKernel() {
-        LocalBuffer buffer = builder.setup(IntData.class, context, 256);
+        LocalBuffer buffer = builder.setup(IntDataProcessor.class, context, 256);
 
         String kernelSource =
                 "__kernel void test_kernel(__local int* shared) {\n" +
@@ -329,7 +329,7 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should bind buffer to multiple kernels")
     void testBindToMultipleKernels() {
-        LocalBuffer buffer = builder.setup(IntData.class, context, 256);
+        LocalBuffer buffer = builder.setup(IntDataProcessor.class, context, 256);
 
         String kernelSource1 =
                 "__kernel void kernel_one(__local int* shared) {}\n";
@@ -355,7 +355,7 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should unbind kernel successfully")
     void testUnbindKernel() {
-        LocalBuffer buffer = builder.setup(IntData.class, context, 256);
+        LocalBuffer buffer = builder.setup(IntDataProcessor.class, context, 256);
 
         String kernelSource =
                 "__kernel void test_kernel(__local int* shared) {}\n";
@@ -417,7 +417,7 @@ public class LocalBufferTest {
             clEnqueueWriteBuffer(context.getCommandQueue(), inputBuffer, true, 0, hostInput, null, null);
 
             clKernel = createKernelFromSource(kernelSource, "prefix_sum");
-            LocalBuffer localBuf = builder.setup("temp", IntData.class, context, localSize);
+            LocalBuffer localBuf = builder.setup("temp", IntDataProcessor.class, context, localSize);
 
             PointerBuffer inputPtr = stack.mallocPointer(1);
             inputPtr.put(inputBuffer);
@@ -488,8 +488,8 @@ public class LocalBufferTest {
             clEnqueueWriteBuffer(context.getCommandQueue(), inputBuffer, true, 0, hostInput, null, null);
 
             clKernel = createKernelFromSource(kernelSource, "reduce_sum");
-            LocalBuffer localBuf = builder.setup("cache", IntData.class, context, localSize);
-            ParameterBuffer paramBuf = new ParameterBufferBuilder().setup("n", IntData.class, context);
+            LocalBuffer localBuf = builder.setup("cache", IntDataProcessor.class, context, localSize);
+            ParameterBuffer paramBuf = new ParameterBufferBuilder().setup("n", IntDataProcessor.class, context);
             paramBuf.write(arraySize);
 
             PointerBuffer inputPtr = stack.mallocPointer(1);
@@ -536,7 +536,7 @@ public class LocalBufferTest {
             int initialSize = 32;
             int resizedSize = 64;
 
-            LocalBuffer localBuf = builder.setup("temp", IntData.class, context, initialSize);
+            LocalBuffer localBuf = builder.setup("temp", IntDataProcessor.class, context, initialSize);
 
             long outputBuffer = createBuffer(resizedSize * Integer.BYTES, CL_MEM_WRITE_ONLY);
 
@@ -601,7 +601,7 @@ public class LocalBufferTest {
             clEnqueueWriteBuffer(context.getCommandQueue(), inputBuffer, true, 0, hostInput, null, null);
 
             clKernel = createKernelFromSource(kernelSource, "avg_filter");
-            LocalBuffer localBuf = builder.setup("cache", FloatData.class, context, localSize);
+            LocalBuffer localBuf = builder.setup("cache", FloatDataProcessor.class, context, localSize);
 
             PointerBuffer inputPtr = stack.mallocPointer(1);
             inputPtr.put(inputBuffer);
@@ -636,7 +636,7 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should destroy buffer successfully")
     void testDestroyBuffer() {
-        LocalBuffer buffer = builder.setup(IntData.class, context, 256);
+        LocalBuffer buffer = builder.setup(IntDataProcessor.class, context, 256);
 
         assertDoesNotThrow(() -> buffer.destroy());
         assertTrue(buffer.isClosed());
@@ -645,7 +645,7 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should throw exception when destroying already closed buffer")
     void testDestroyAlreadyClosedBuffer() {
-        LocalBuffer buffer = builder.setup(IntData.class, context, 256);
+        LocalBuffer buffer = builder.setup(IntDataProcessor.class, context, 256);
         buffer.destroy();
 
         assertThrows(BufferDestructionException.class, buffer::destroy);
@@ -654,7 +654,7 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should not allow operations after destroy")
     void testOperationsAfterDestroy() {
-        LocalBuffer buffer = builder.setup(IntData.class, context, 256);
+        LocalBuffer buffer = builder.setup(IntDataProcessor.class, context, 256);
         buffer.destroy();
 
         assertThrows(BufferDestructionException.class, buffer::getSize);
@@ -667,12 +667,12 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should return correct toString representation")
     void testToString() {
-        LocalBuffer buffer = builder.setup("MyLocalBuffer", IntData.class, context, 256);
+        LocalBuffer buffer = builder.setup("MyLocalBuffer", IntDataProcessor.class, context, 256);
 
         String result = buffer.toString();
         assertTrue(result.contains("LocalBuffer"));
         assertTrue(result.contains("MyLocalBuffer"));
-        assertTrue(result.contains("IntData"));
+        assertTrue(result.contains("IntDataProcessor"));
 
         buffer.destroy();
     }
@@ -681,7 +681,7 @@ public class LocalBufferTest {
     @Test
     @DisplayName("Should handle large local memory allocation")
     void testLargeLocalMemoryAllocation() {
-        LocalBuffer buffer = builder.setup(IntData.class, context, 8192);
+        LocalBuffer buffer = builder.setup(IntDataProcessor.class, context, 8192);
 
         assertEquals(8192, buffer.getSize());
 

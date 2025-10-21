@@ -16,9 +16,9 @@
 
 package io.github.kushnirvladyslav.memory.data.typical;
 
-import io.github.kushnirvladyslav.memory.data.ConvertFromByteBuffer;
-import io.github.kushnirvladyslav.memory.data.ConvertToByteBuffer;
-import io.github.kushnirvladyslav.memory.data.Data;
+import io.github.kushnirvladyslav.memory.data.FromByteBuffer;
+import io.github.kushnirvladyslav.memory.data.ToByteBuffer;
+import io.github.kushnirvladyslav.memory.data.DataProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +37,7 @@ import java.util.Arrays;
  *
  * <p>Example usage:
  * <pre>
- * ByteData byteData = new ByteData();
+ * ByteDataProcessor byteData = new ByteDataProcessor();
  *
  * // Using primitive array
  * byte[] primitiveArray = {1, 2, 3};
@@ -54,13 +54,13 @@ import java.util.Arrays;
  * </pre>
  *
  * @author Vladyslav Kushnir
- * @see Data
- * @see ConvertToByteBuffer
- * @see ConvertFromByteBuffer
+ * @see DataProcessor
+ * @see ToByteBuffer
+ * @see FromByteBuffer
  * @since 1.0
  */
-public class ByteData implements Data, ConvertFromByteBuffer, ConvertToByteBuffer {
-    private static final Logger logger = LoggerFactory.getLogger(ByteData.class);
+public class ByteDataProcessor implements DataProcessor, FromByteBuffer, ToByteBuffer {
+    private static final Logger logger = LoggerFactory.getLogger(ByteDataProcessor.class);
 
     /**
      * {@inheritDoc}

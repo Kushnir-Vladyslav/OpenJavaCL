@@ -19,7 +19,7 @@ package io.github.kushnirvladyslav.memory.newBuffer;
 import io.github.kushnirvladyslav.ClContext;
 
 import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
-import io.github.kushnirvladyslav.memory.data.Data;
+import io.github.kushnirvladyslav.memory.data.DataProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,11 +71,11 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
     }
 
     @SuppressWarnings("unchecked")
-    public T withDataClass(Class<? extends Data> newClass) {
+    public T withDataClass(Class<? extends DataProcessor> newClass) {
         if (newClass == null) {
             String message = name != null
-                    ? String.format("Data class cannot be null for building buffer '%s'", name)
-                    : "Data class cannot be null for building buffer";
+                    ? String.format("DataProcessor class cannot be null for building buffer '%s'", name)
+                    : "DataProcessor class cannot be null for building buffer";
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
@@ -108,9 +108,9 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
         return context;
     }
 
-    protected Data getDataObject(){
+    protected DataProcessor getDataObject(){
         try {
-            return (Data) dataClass.getConstructor().newInstance();
+            return (DataProcessor) dataClass.getConstructor().newInstance();
         } catch (Exception e) {
             String message = "Failed to instantiate data class: " + e.getMessage();
             logger.error(message);

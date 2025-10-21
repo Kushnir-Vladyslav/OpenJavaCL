@@ -16,7 +16,7 @@
 
 package io.github.kushnirvladyslav.memory.buffer;
 
-import io.github.kushnirvladyslav.memory.data.ConvertToByteBuffer;
+import io.github.kushnirvladyslav.memory.data.ToByteBuffer;
 import io.github.kushnirvladyslav.memory.util.CopyDataBufferToBuffer;
 import org.lwjgl.opencl.CL10;
 import org.lwjgl.system.MemoryUtil;
@@ -82,10 +82,10 @@ public interface Writable<T extends AbstractGlobalBuffer & Writable<T>> {
             throw new IllegalArgumentException(message);
         }
 
-        ConvertToByteBuffer converter = (ConvertToByteBuffer) buffer.dataObject;
+        ToByteBuffer converter = (ToByteBuffer) buffer.dataProcessorObject;
 
-        int arrSize = buffer.dataObject.getSizeArray(arr);
-        int dataSize = buffer.dataObject.getSizeStruct();
+        int arrSize = buffer.dataProcessorObject.getSizeArray(arr);
+        int dataSize = buffer.dataProcessorObject.getSizeStruct();
 
         if (arrSize + offset > buffer.capacity) {
             if (buffer instanceof Dynamical<?>) {
@@ -95,7 +95,7 @@ public interface Writable<T extends AbstractGlobalBuffer & Writable<T>> {
                 dynamical.resize((int) ((arrSize + offset) * 1.5));
             } else {
                 String message = String.format(
-                        "Data size (%d) exceeds static buffer capacity (%d) for buffer '%s'",
+                        "DataProcessor size (%d) exceeds static buffer capacity (%d) for buffer '%s'",
                         arrSize + offset, buffer.capacity, buffer.getBufferName());
                 logger.error(message);
                 throw new IllegalStateException(message);
@@ -233,7 +233,7 @@ public interface Writable<T extends AbstractGlobalBuffer & Writable<T>> {
             throw new IllegalArgumentException(message);
         }
 
-        int dataSize = buffer.dataObject.getSizeStruct();
+        int dataSize = buffer.dataProcessorObject.getSizeStruct();
         logger.debug("Removing {} elements from buffer '{}' at index {}",
                 num, buffer.getBufferName(), index);
 

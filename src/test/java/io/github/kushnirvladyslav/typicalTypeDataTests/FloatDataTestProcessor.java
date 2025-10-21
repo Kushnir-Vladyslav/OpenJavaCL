@@ -1,18 +1,18 @@
 package io.github.kushnirvladyslav.typicalTypeDataTests;
 
 
-import io.github.kushnirvladyslav.memory.data.typical.FloatData;
+import io.github.kushnirvladyslav.memory.data.typical.FloatDataProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 import static org.junit.jupiter.api.Assertions.*;
 
-class FloatDataTest {
-    private FloatData floatData;
+class FloatDataTestProcessor {
+    private FloatDataProcessor floatData;
 
     @BeforeEach
     void setUp() {
-        floatData = new FloatData();
+        floatData = new FloatDataProcessor();
     }
 
     @Test

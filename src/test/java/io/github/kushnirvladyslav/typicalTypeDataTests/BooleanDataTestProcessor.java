@@ -1,17 +1,17 @@
 package io.github.kushnirvladyslav.typicalTypeDataTests;
 
-import io.github.kushnirvladyslav.memory.data.typical.BooleanData;
+import io.github.kushnirvladyslav.memory.data.typical.BooleanDataProcessor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import java.nio.ByteBuffer;
 import static org.junit.jupiter.api.Assertions.*;
 
-class BooleanDataTest {
-    private BooleanData booleanData;
+class BooleanDataTestProcessor {
+    private BooleanDataProcessor booleanData;
 
     @BeforeEach
     void setUp() {
-        booleanData = new BooleanData();
+        booleanData = new BooleanDataProcessor();
     }
 
     @Test
