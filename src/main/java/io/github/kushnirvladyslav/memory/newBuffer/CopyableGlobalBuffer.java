@@ -16,6 +16,7 @@
 
 package io.github.kushnirvladyslav.memory.newBuffer;
 
+import io.github.kushnirvladyslav.exceptions.BufferIndexOutOfBoundsException;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
 import io.github.kushnirvladyslav.util.clEvent.ClEvent;
@@ -46,7 +47,7 @@ public abstract class CopyableGlobalBuffer
             throw new BufferOperationException(message);
         }
 
-        return copyFrom(src, src.size, events);
+        return copyFrom(src, src.capacity, events);
     }
 
     public ClEvent copyFrom (GlobalBuffer src, int size){
@@ -76,7 +77,7 @@ public abstract class CopyableGlobalBuffer
             throw new BufferOperationException(message);
         }
 
-        return copyTo(dst, this.size, events);
+        return copyTo(dst, this.capacity, events);
     }
 
     public ClEvent copyTo (GlobalBuffer dst, int size){
@@ -135,29 +136,24 @@ public abstract class CopyableGlobalBuffer
             throw new BufferOperationException(message);
         }
 
-        if (src.size < srcOffset + size) {
-            String message = "Attempt to read outside the source buffer.";
+        if (src.capacity < srcOffset + size) {
+            String message = String.format(
+                    "Attempt to read outside the source buffer while copying. Buffer capacity '%s' is %d, attempted to write to %d.",
+                    src.name, src.capacity, srcOffset + size);
             logger.error(message);
             throw new BufferOperationException(message);
         }
 
-        //
-        //
-        //виправити, розмір нічого не означає
-        //
-        //
-        if (dst.size < dstOffset + size) {
-            if(dst instanceof Dynamical){
-                Dynamical dynamical = (Dynamical) dst;
-                if (events != null) {
-                    dynamical.resize(dstOffset + size, events);
-                } else {
-                    dynamical.resize(dstOffset + size);
-                }
-            } else {
-                String message = "Attempt to write outside the destination buffer.";
+        if (dst.capacity < dstOffset + size) {
+            try{
+                changeCapacity(dstOffset + size, events);
+            }
+            catch (BufferOperationException e) {
+                String message = String.format(
+                        "Attempted to write outside destination buffer while copying. Buffer capacity s is d, attempted to write to d.",
+                        dst.name, dst.capacity, dstOffset + size);
                 logger.error(message);
-                throw new BufferOperationException(message);
+                throw new BufferIndexOutOfBoundsException(message);
             }
         }
 
@@ -173,11 +169,11 @@ public abstract class CopyableGlobalBuffer
                     (long) srcOffset * dataSize,
                     (long) dstOffset * dataSize,
                     (long) size * dataSize,
-                    events.getEventList(stack),
+                    (events == null) ? null : events.getEventList(stack),
                     thisEvent.rewind()
             );
 
-            events.releaseEvents();
+            if (events != null) events.releaseEvents();
 
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
                 String message = String.format(

@@ -16,8 +16,11 @@
 
 package io.github.kushnirvladyslav.memory.newBuffer;
 
+import io.github.kushnirvladyslav.exceptions.BufferIndexOutOfBoundsException;
 import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
+import io.github.kushnirvladyslav.exceptions.BufferOperationException;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
+import io.github.kushnirvladyslav.util.clEvent.ClEventList;
 import org.lwjgl.opencl.CL10;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
@@ -35,7 +38,7 @@ public abstract class GlobalBuffer
     protected ByteBuffer stagingBuffer;
 
     protected long flags = 0;
-    protected int size = 0;
+    protected int pointer = 0;
     protected int capacity;
 
     protected GlobalBuffer(GlobalBufferBuilder<?, ?> builder) {
@@ -50,7 +53,7 @@ public abstract class GlobalBuffer
             stagingBuffer = MemoryUtil.memAlloc(capacity * dataProcessor.getSizeStruct());
         }
 
-        createClMem();
+       this.clMem = createClMem();
     }
 
     protected abstract void setup();
@@ -92,18 +95,48 @@ public abstract class GlobalBuffer
         return newClMem;
     }
 
+    protected void changeCapacity(int newSize, ClEventList events){
+        String message = String.format(
+                "Buffer '%s' must be dynamical for change capacity",
+                getName());
+        logger.error(message);
+        throw new BufferIndexOutOfBoundsException(message);
+    }
+
     public int getCapacity(){
         return capacity;
     }
 
-    /**
-     * Returns the buffer size based on buffer operations from the host.
-     * If more data has been written to the device, within capacity, than from the host, the "size" will not reflect this.
-     *
-     * @return size
-     */
-    public int getSize(){
-        return size;
+    public int getPointer(){
+        return pointer;
+    }
+
+    public void setPointer(int newPointer){
+        setPointer(newPointer, null);
+    }
+
+    public void setPointer(int newPointer, ClEventList events){
+        if (newPointer < 0){
+            String message = String.format("Buffer pointer must be positive, got %d for '%s'",
+                    newPointer, getName());
+            logger.error(message);
+            throw new BufferIndexOutOfBoundsException(message);
+        }
+
+        if(newPointer >= capacity){
+            try{
+                changeCapacity(newPointer,events);
+            }
+            catch (BufferOperationException e) {
+                String message = String.format(
+                        "Buffer pointer must be lower than capacity in static buffer, got %d for '%s' with capacity %d",
+                        newPointer, getName(), capacity);
+                logger.error(message);
+                throw new BufferIndexOutOfBoundsException(message);
+            }
+        }
+
+        pointer = newPointer;
     }
 
     @Override
