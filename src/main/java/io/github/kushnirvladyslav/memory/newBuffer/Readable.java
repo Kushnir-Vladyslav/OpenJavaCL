@@ -44,6 +44,14 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
 
         DataProcessor dataProcessor = buffer.dataProcessor;
 
+        if(targetArray == null) {
+            String message = String.format(
+                    "The passed array for reading the buffer '%s', can`t be null.",
+                    buffer.getName());
+            logger.error(message);
+            throw new NullPointerException(message);
+        }
+
         if(offset < 0) {
             String message = String.format(
                     "To read data from a buffer, the offset passed cannot be negative: offset=%d, for buffer '%s'",
