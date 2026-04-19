@@ -95,7 +95,7 @@ public abstract class GlobalBuffer
         return newClMem;
     }
 
-    protected void changeCapacity(int newSize, ClEventList events){
+    protected synchronized void changeCapacity(int newSize, ClEventList events){
         String message = String.format(
                 "Buffer '%s' must be dynamical for change capacity",
                 getName());

@@ -22,8 +22,11 @@ import io.github.kushnirvladyslav.util.clEvent.ClEventList;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL10;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
 
 public abstract class DynamicalGlobalBuffer
         extends CopyableGlobalBuffer{
@@ -38,7 +41,7 @@ public abstract class DynamicalGlobalBuffer
     }
 
     @Override
-    protected void changeCapacity(int newCapacity, ClEventList events){
+    protected synchronized void changeCapacity(int newCapacity, ClEventList events) {
         checkNotClosed();
 
         if (newCapacity < 0) {
@@ -122,7 +125,7 @@ public abstract class DynamicalGlobalBuffer
 
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
                 String message = String.format(
-                        "Copying from old to new clBuffer, when decreasing size of buffer '%s', ended with an error: %s",
+                        "Copying from old to new clBuffer, when resizing of buffer '%s', ended with an error: %s",
                         name, OpenCLErrorUtils.getCLErrorString(errorCode));
                 logger.error(message);
                 throw new BufferOperationException(message);
@@ -132,7 +135,7 @@ public abstract class DynamicalGlobalBuffer
             CL10.clReleaseEvent(thisEvent.get(0));
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
                 String message = String.format(
-                        "Copying from old to new clBuffer, when decreasing size of buffer '%s', ended with an error: %s",
+                        "Copying from old to new clBuffer, when resizing of buffer '%s', ended with an error: %s",
                         name, OpenCLErrorUtils.getCLErrorString(errorCode));
                 logger.error(message);
                 throw new BufferOperationException(message);
@@ -144,8 +147,27 @@ public abstract class DynamicalGlobalBuffer
                         OpenCLErrorUtils.getCLErrorString(errorCode));
             }
 
+            if (pointer > targetCapacity) pointer = targetCapacity;
+
             capacity = targetCapacity;
             clMem = newClMem;
+
+            if (stagingBuffer != null){
+                int newStagingBufferSize = targetCapacity * dataSize;
+                ByteBuffer newStagingBuffer = MemoryUtil.memAlloc(newStagingBufferSize);
+
+                int bytesToCopy = Math.min(oldCapacity, targetCapacity) * dataSize;
+
+                int oldPosition = stagingBuffer.position();
+                stagingBuffer.position(0).limit(bytesToCopy);
+                newStagingBuffer.put(stagingBuffer);
+
+                stagingBuffer.clear();
+                MemoryUtil.memFree(stagingBuffer);
+
+                newStagingBuffer.position(Math.min(newStagingBufferSize, oldPosition));
+                stagingBuffer = newStagingBuffer;
+            }
 
             rebindAllKernels();
         } catch (Exception e) {
