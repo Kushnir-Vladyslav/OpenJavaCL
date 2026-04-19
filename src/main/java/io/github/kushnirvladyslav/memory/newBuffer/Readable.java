@@ -71,21 +71,10 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
             throw new IllegalArgumentException(message);
         }
 
-        if (offset + len > buffer.size) {
-            logger.info("Reading uninitialized data: offset={}, length={}, host-initiated size={} for buffer '{}'",
-                    offset, len, buffer.size, buffer.getName());
-        }
-
         try (MemoryStack stack = MemoryStack.stackPush()){
             PointerBuffer rowEvent = stack.mallocPointer(1);
             ClCustomEvent customEvent = new ClCustomEvent(buffer.context);
-            ByteBuffer tempNativeBuffer;
-            if(buffer.stagingBuffer == null) {
-                tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
-            } else {
-                tempNativeBuffer = (ByteBuffer) buffer.stagingBuffer.rewind().limit((int)byteLen).slice();
-                buffer.stagingBuffer.clear();
-            }
+            ByteBuffer tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
 
             int errorCode = CL10.clEnqueueReadBuffer(
                     buffer.context.getCommandQueue(),
@@ -97,14 +86,13 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
                     rowEvent
             );
 
-            if( events != null) {
+            if (events != null) {
                 events.releaseEvents();
             }
 
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
-                if(buffer.stagingBuffer == null){
-                    MemoryUtil.memFree(tempNativeBuffer);
-                }
+                MemoryUtil.memFree(tempNativeBuffer);
+
                 customEvent.setComplete();
                 String message = String.format(
                         "OpenCL read buffer failed for buffer '%s': error - %s",
@@ -123,14 +111,42 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
                         customEvent.setError(status);
                     }
                 } finally {
-                    if(buffer.stagingBuffer == null){
-                        MemoryUtil.memFree(tempNativeBuffer);
-                    }
+                    MemoryUtil.memFree(tempNativeBuffer);
                 }
             });
 
             return customEvent;
         }
+    }
+
+    default ClEvent readAsync(int offset, Object targetArray){
+        return readAsync(offset, null, targetArray);
+    }
+
+    default ClEvent readNextAsync(ClEventList events, Object targetArray){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        int len = dataProcessor.getSizeArray(targetArray);
+        int offset = buffer.pointer;
+
+        if (offset + len > buffer.capacity) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d, capacity=%d for buffer '%s'",
+                    offset, len, buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        buffer.pointer += len;
+        return readAsync(offset, events, targetArray);
+    }
+
+    default ClEvent readNextAsync(Object targetArray){
+        return readNextAsync(null, targetArray);
     }
 
     @SuppressWarnings("unchecked")
@@ -172,11 +188,6 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
                     byteLen, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
-        }
-
-        if (offset + len > buffer.size) {
-            logger.info("Reading uninitialized data: offset={}, length={}, host-initiated size={} for buffer '{}'",
-                    offset, len, buffer.size, buffer.getName());
         }
 
         Object targetArray = ((FromByteBuffer)dataProcessor).createArr(len);
@@ -228,6 +239,43 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
         }
     }
 
+    default Object readSync(int offset, int len){
+        return readSync(offset, len, null);
+    }
+
+    default Object readNextSync(int len, ClEventList events){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        int offset = buffer.pointer;
+
+        if (offset + len > buffer.capacity) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d, capacity=%d for buffer '%s'",
+                    offset, len, buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        buffer.pointer += len;
+        return readSync(offset, len, events);
+    }
+
+    default Object readNextSync(ClEventList events){
+        return readNextSync(1, events);
+    }
+
+    default Object readNextSync(int len){
+        return readNextSync(len, null);
+    }
+
+    default Object readNextSync(){
+        return readNextSync(1, null);
+    }
+
     @SuppressWarnings("unchecked")
     default ClEvent readAsyncByte(int offset, ClEventList events, byte[] targetArray){
         T buffer = (T) this;
@@ -262,26 +310,15 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
             throw new IllegalArgumentException(message);
         }
 
-        if (offset + len > buffer.size) {
-            logger.info("Reading uninitialized data: offset={}, length={} by Byte, length={} by elements, host-initiated size={} for buffer '{}'",
-                    offset, len, (int) Math.ceil((double)len / dataProcessor.getSizeStruct()), buffer.size, buffer.getName());
-        }
-
         if (len % dataProcessor.getSizeStruct() != 0) {
-            logger.info("The size of the passed array ({}) for reading the buffer {} is not a multiple of the number of elements ({}).",
+            logger.warn("The size of the passed array ({}) for reading the buffer {} is not a multiple of the number of elements ({}).",
                     len, buffer.getName(), dataProcessor.getSizeStruct());
         }
 
         try (MemoryStack stack = MemoryStack.stackPush()){
             PointerBuffer rowEvent = stack.mallocPointer(1);
             ClCustomEvent customEvent = new ClCustomEvent(buffer.context);
-            ByteBuffer tempNativeBuffer;
-            if(buffer.stagingBuffer == null) {
-                tempNativeBuffer = MemoryUtil.memAlloc(len);
-            } else {
-                tempNativeBuffer = (ByteBuffer) buffer.stagingBuffer.rewind().limit(len).slice();
-                buffer.stagingBuffer.clear();
-            }
+            ByteBuffer tempNativeBuffer = MemoryUtil.memAlloc(len);
 
             int errorCode = CL10.clEnqueueReadBuffer(
                     buffer.context.getCommandQueue(),
@@ -298,9 +335,8 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
             }
 
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
-                if(buffer.stagingBuffer == null){
-                    MemoryUtil.memFree(tempNativeBuffer);
-                }
+                MemoryUtil.memFree(tempNativeBuffer);
+
                 customEvent.setComplete();
                 String message = String.format(
                         "OpenCL read buffer failed for buffer '%s': error - %s",
@@ -319,14 +355,43 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
                         customEvent.setError(status);
                     }
                 } finally {
-                    if(buffer.stagingBuffer == null){
-                        MemoryUtil.memFree(tempNativeBuffer);
-                    }
+                    MemoryUtil.memFree(tempNativeBuffer);
                 }
             });
 
             return customEvent;
         }
+    }
+
+    default ClEvent readAsyncByte(int offset, byte[] targetArray){
+        return readAsyncByte(offset, null, targetArray);
+    }
+
+    default ClEvent readNextAsyncByte(ClEventList events, byte[] targetArray){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        int len = targetArray.length;
+        int offset = buffer.pointer;
+        int structureSize = dataProcessor.getSizeStruct();
+
+        if ((long)offset * structureSize + len > (long)buffer.capacity * structureSize) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d by Byte, length=%d by elements, capacity=%d for buffer '%s'",
+                    offset, len, (int) Math.ceil((double)len / structureSize), buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        buffer.pointer += len / structureSize;
+        return readAsyncByte(offset, events, targetArray);
+    }
+
+    default ClEvent readNextAsyncByte(byte[] targetArray){
+        return readNextAsyncByte(null, targetArray);
     }
 
     @SuppressWarnings("unchecked")
@@ -368,11 +433,6 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
                     offset, len, buffer.capacity, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
-        }
-
-        if (offset + len > buffer.size) {
-            logger.info("Reading uninitialized data: offset={}, length={}, host-initiated size={} for buffer '{}'",
-                    offset, len, buffer.size, buffer.getName());
         }
 
         byte[] targetArray = new byte[len * dataProcessor.getSizeStruct()];
@@ -420,5 +480,43 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
                 MemoryUtil.memFree(tempNativeBuffer);
             }
         }
+    }
+
+    default byte[] readSyncByte(int offset, int len){
+        return readSyncByte(offset, len, null);
+    }
+
+    default byte[] readNextSyncByte(int len, ClEventList events){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        int offset = buffer.pointer;
+        int structureSize = dataProcessor.getSizeStruct();
+
+        if ((long)(offset + len) * structureSize  > (long)buffer.capacity * structureSize) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d by Byte, length=%d by elements, capacity=%d for buffer '%s'",
+                    offset, len, (int) Math.ceil((double)len / structureSize), buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        buffer.pointer += len / structureSize;
+        return readSyncByte(offset, len, events);
+    }
+
+    default byte[] readNextSyncByte(ClEventList events){
+        return readNextSyncByte(1, events);
+    }
+
+    default byte[] readNextSyncByte(int len){
+        return readNextSyncByte(len, null);
+    }
+
+    default byte[] readNextSyncByte(){
+        return readNextSyncByte(1, null);
     }
 }
