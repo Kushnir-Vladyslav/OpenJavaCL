@@ -19,9 +19,9 @@ package io.github.kushnirvladyslav.memory.util;
 import org.lwjgl.opencl.CL12;
 
 public enum HostMemoryAccess {
-    READ_WRIGHT (0),
+    READ_WRITE(0),
     READ_ONLY (CL12.CL_MEM_HOST_READ_ONLY),
-    WRIGHT_ONLY (CL12.CL_MEM_HOST_WRITE_ONLY),
+    WRITE_ONLY(CL12.CL_MEM_HOST_WRITE_ONLY),
     NO_ACCESS (CL12.CL_MEM_HOST_NO_ACCESS);
 
     HostMemoryAccess(int flag) {

@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B extends BaseBuffer>{
-    private static final Logger logger = LoggerFactory.getLogger(BaseBuffer.class);
+    private static final Logger logger = LoggerFactory.getLogger(BaseBufferBuilder.class);
 
     private static final AtomicInteger nameCounter = new AtomicInteger(0);
 

@@ -25,7 +25,7 @@ public abstract class GlobalBufferBuilder
         extends ClMemBufferBuilder<T, B> {
     private static final Logger logger = LoggerFactory.getLogger(GlobalBufferBuilder.class);
 
-    private DeviceMemoryAccess deviceMemoryAccess = DeviceMemoryAccess.WRIGHT_ONLY;
+    private DeviceMemoryAccess deviceMemoryAccess = DeviceMemoryAccess.READ_WRITE;
 
     private int capacity = 1;
 

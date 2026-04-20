@@ -789,7 +789,7 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
         }
 
         buffer.pointer += len / structureSize;
-        readSyncByte(offset, len, events);
+        readSyncByte(offset, events, targetArray);
     }
 
     default void readNextSyncByte(byte[] targetArray){

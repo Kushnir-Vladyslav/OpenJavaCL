@@ -14,22 +14,18 @@
  * limitations under the License.
  */
 
-package io.github.kushnirvladyslav.memory.util;
+package io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.globalBuffers;
 
-import org.lwjgl.opencl.CL10;
+import io.github.kushnirvladyslav.memory.newBuffer.CopyableGlobalBufferBuilder;
 
-public enum DeviceMemoryAccess {
-    READ_WRITE(CL10.CL_MEM_READ_WRITE ),
-    READ_ONLY (CL10.CL_MEM_READ_ONLY ),
-    WRITE_ONLY(CL10.CL_MEM_WRITE_ONLY );
+public class GlobalStaticBufferBuilder
+        extends CopyableGlobalBufferBuilder<GlobalStaticBufferBuilder, GlobalStaticBuffer>
+{
 
-    DeviceMemoryAccess(int flag) {
-        this.flag = flag;
-    }
-
-    private final int flag;
-
-    public int getFlag() {
-        return flag;
+    @Override
+    public GlobalStaticBuffer build() {
+        GlobalStaticBuffer buffer = new GlobalStaticBuffer(this);
+        registerBuffer(buffer);
+        return buffer;
     }
 }

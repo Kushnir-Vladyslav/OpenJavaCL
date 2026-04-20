@@ -59,8 +59,8 @@ public abstract class AbstractGlobalBuffer
     protected boolean copyHostBuffer = false;
     protected boolean copyNativeBuffer = false;
 
-    protected DeviceMemoryAccess deviceMemoryAccess = DeviceMemoryAccess.READ_WRIGHT;
-    protected HostMemoryAccess hostMemoryAccess = HostMemoryAccess.READ_WRIGHT;
+    protected DeviceMemoryAccess deviceMemoryAccess = DeviceMemoryAccess.READ_WRITE;
+    protected HostMemoryAccess hostMemoryAccess = HostMemoryAccess.READ_WRITE;
     protected long clBuffer = 0;
 
     protected Object hostBuffer = null;
@@ -116,8 +116,6 @@ public abstract class AbstractGlobalBuffer
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
-
-
 
         logger.debug("Setting OpenCL host memory access to {} for buffer '{}'", deviceMemoryAccess.name(), getBufferName());
         this.hostMemoryAccess = hostMemoryAccess;
@@ -195,9 +193,9 @@ public abstract class AbstractGlobalBuffer
             }
         }
 
-        if (hostMemoryAccess != HostMemoryAccess.READ_WRIGHT &&
+        if (hostMemoryAccess != HostMemoryAccess.READ_WRITE &&
                 !context.getDevice().getOpenCLVersion().isAtLeast(CLVersion.OPENCL_1_2)) {
-            hostMemoryAccess = HostMemoryAccess.READ_WRIGHT;
+            hostMemoryAccess = HostMemoryAccess.READ_WRITE;
         }
     }
 
