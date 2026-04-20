@@ -28,10 +28,14 @@ public abstract class ClMemBuffer
         extends KernelAwareBuffer {
     private static final Logger logger = LoggerFactory.getLogger(ClMemBuffer.class);
 
+    protected long flags = 0L;
     protected long clMem;
 
     protected ClMemBuffer(ClMemBufferBuilder<?, ?> builder) {
         super(builder);
+
+        flags |= builder.getHostMemoryAccess().getFlag();
+        flags |= builder.getDeviceMemoryAccess().getFlag();
 
         clMem = 0;
     }

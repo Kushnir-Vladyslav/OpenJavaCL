@@ -17,19 +17,13 @@
 package io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.globalBuffers;
 
 import io.github.kushnirvladyslav.memory.newBuffer.CopyableGlobalBuffer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.github.kushnirvladyslav.memory.newBuffer.Writable;
 
-public class GlobalStaticBuffer extends CopyableGlobalBuffer {
-    private static final Logger logger = LoggerFactory.getLogger(GlobalStaticBuffer.class);
+public class GlobalWriteOnlyStaticBuffer
+        extends CopyableGlobalBuffer
+        implements Writable<GlobalWriteOnlyStaticBuffer> {
 
-    public GlobalStaticBuffer(GlobalStaticBufferBuilder builder){
+    public GlobalWriteOnlyStaticBuffer(GlobalWriteOnlyStaticBufferBuilder builder){
         super(builder);
     }
-
-    @Override
-    protected void setup() {
-
-    }
-
 }

@@ -16,7 +16,6 @@
 
 package io.github.kushnirvladyslav.memory.newBuffer;
 
-import io.github.kushnirvladyslav.memory.util.DeviceMemoryAccess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,24 +24,8 @@ public abstract class GlobalBufferBuilder
         extends ClMemBufferBuilder<T, B> {
     private static final Logger logger = LoggerFactory.getLogger(GlobalBufferBuilder.class);
 
-    private DeviceMemoryAccess deviceMemoryAccess = DeviceMemoryAccess.READ_WRITE;
-
     private int capacity = 1;
-
     private boolean stagingBuffer = false;
-
-    @SuppressWarnings("unchecked")
-    public T withDeviceMemoryAccess(DeviceMemoryAccess deviceMemoryAccess) {
-        if (deviceMemoryAccess == null) {
-            String message =  "DeviceMemoryAccess cannot be null for building buffer";
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-        this.deviceMemoryAccess = deviceMemoryAccess;
-
-        return (T) this;
-    }
 
     @SuppressWarnings("unchecked")
     public T withCapacity(int capacity) {
@@ -60,10 +43,6 @@ public abstract class GlobalBufferBuilder
     public T withStagingBuffer(boolean stagingBuffer){
         this.stagingBuffer = stagingBuffer;
         return (T) this;
-    }
-
-    protected DeviceMemoryAccess getDeviceMemoryAccess(){
-        return deviceMemoryAccess;
     }
 
     protected int getCapacity(){

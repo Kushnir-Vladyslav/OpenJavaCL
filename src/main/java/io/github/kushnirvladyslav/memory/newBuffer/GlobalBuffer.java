@@ -19,6 +19,9 @@ package io.github.kushnirvladyslav.memory.newBuffer;
 import io.github.kushnirvladyslav.exceptions.BufferIndexOutOfBoundsException;
 import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
+import io.github.kushnirvladyslav.memory.data.FromByteBuffer;
+import io.github.kushnirvladyslav.memory.data.ToByteBuffer;
+import io.github.kushnirvladyslav.memory.util.HostMemoryAccess;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
 import io.github.kushnirvladyslav.util.clEvent.ClEventList;
 import org.lwjgl.opencl.CL10;
@@ -37,7 +40,6 @@ public abstract class GlobalBuffer
 
     protected ByteBuffer stagingBuffer;
 
-    protected long flags = 0;
     protected int pointer = 0;
     protected int capacity;
 
@@ -45,9 +47,32 @@ public abstract class GlobalBuffer
         super(builder);
 
         this.capacity = builder.getCapacity();
-        this.capacity |= builder.getDeviceMemoryAccess().getFlag();
 
-        setup();
+        if(builder.getHostMemoryAccess() == HostMemoryAccess.READ_ONLY){
+            if(!(dataProcessor instanceof FromByteBuffer)){
+                String message =  String.format(
+                        "For buffer '%s' with read from host access, must implements \"FromByteBuffer\" interface.",
+                        name);
+                logger.error(message);
+                throw new IllegalArgumentException(message);
+            }
+        } else if(builder.getHostMemoryAccess() == HostMemoryAccess.WRITE_ONLY){
+            if(!(dataProcessor instanceof ToByteBuffer)){
+                String message =  String.format(
+                        "For buffer '%s' with write from host access, must implements \"ToByteBuffer\" interface.",
+                        name);
+                logger.error(message);
+                throw new IllegalArgumentException(message);
+            }
+        } else if(builder.getHostMemoryAccess() == HostMemoryAccess.READ_WRITE){
+            if(!(dataProcessor instanceof ToByteBuffer) || !(dataProcessor instanceof FromByteBuffer)){
+                String message =  String.format(
+                        "For buffer '%s' with read/write from host access, must implements \"FromByteBuffer\" and \"ToByteBuffer\" interfaces.",
+                        name);
+                logger.error(message);
+                throw new IllegalArgumentException(message);
+            }
+        }
 
         if(builder.getStagingBuffer()){
             stagingBuffer = MemoryUtil.memAlloc(capacity * dataProcessor.getSizeStruct());
@@ -55,8 +80,6 @@ public abstract class GlobalBuffer
 
        this.clMem = createClMem();
     }
-
-    protected abstract void setup();
 
     @Override
     protected long createClMem() {
