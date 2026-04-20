@@ -18,7 +18,6 @@ package io.github.kushnirvladyslav.memory.newBuffer;
 
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
 import io.github.kushnirvladyslav.memory.data.DataProcessor;
-import io.github.kushnirvladyslav.memory.data.FromByteBuffer;
 import io.github.kushnirvladyslav.memory.data.ToByteBuffer;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
 import io.github.kushnirvladyslav.util.clEvent.ClCustomEvent;
@@ -37,7 +36,7 @@ public interface Writable
         <T extends CopyableGlobalBuffer & Writable<T>>{
     Logger logger = LoggerFactory.getLogger(Writable.class);
 
-
+    @SuppressWarnings("unchecked")
     default ClEvent writeAsync (int offset, ClEventList events, Object array){
         T buffer = (T) this;
 
@@ -134,6 +133,38 @@ public interface Writable
         }
     }
 
+    default ClEvent writeAsync (int offset, Object array){
+        return writeAsync(offset, null, array);
+    }
+
+    default ClEvent writeAsync (ClEventList events, Object array){
+        return writeAsync(0, events, array);
+    }
+
+    default ClEvent writeAsync (Object array){
+        return writeAsync(0, null, array);
+    }
+
+    @SuppressWarnings("unchecked")
+    default ClEvent writeNextAsync (ClEventList events, Object array){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+        int len = dataProcessor.getSizeArray(array);
+        int offset = buffer.pointer;
+
+        buffer.pointer += len;
+
+        return writeAsync(offset, events, array);
+    }
+
+    default ClEvent writeNextAsync (Object array){
+        return writeNextAsync(null, array);
+    }
+
+    @SuppressWarnings("unchecked")
     default void writeSync (int offset, ClEventList events, Object array){
         T buffer = (T) this;
 
@@ -225,6 +256,38 @@ public interface Writable
         }
     }
 
+    default void writeSync (int offset, Object array){
+        writeSync(offset, null, array);
+    }
+
+    default void writeSync (ClEventList events, Object array){
+        writeSync(0, events, array);
+    }
+
+    default void writeSync (Object array){
+        writeSync(0, null, array);
+    }
+
+    @SuppressWarnings("unchecked")
+    default void writeNextSync (ClEventList events, Object array){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+        int len = dataProcessor.getSizeArray(array);
+        int offset = buffer.pointer;
+
+        buffer.pointer += len;
+
+        writeSync(offset, events, array);
+    }
+
+    default void writeNextSync (Object array){
+        writeNextSync(null, array);
+    }
+
+    @SuppressWarnings("unchecked")
     default ClEvent writeAsyncByte (int offset, ClEventList events, byte[] array){
         T buffer = (T) this;
 
@@ -272,7 +335,7 @@ public interface Writable
         try (MemoryStack stack = MemoryStack.stackPush()){
             PointerBuffer rowEvent = stack.mallocPointer(1);
             ClCustomEvent customEvent = new ClCustomEvent(buffer.context);
-            ByteBuffer tempNativeBuffer = MemoryUtil.memAlloc(len).put(array);
+            ByteBuffer tempNativeBuffer = MemoryUtil.memAlloc(len).put(array).rewind();
 
             int errorCode = CL10.clEnqueueWriteBuffer(
                     buffer.context.getCommandQueue(),
@@ -316,6 +379,38 @@ public interface Writable
         }
     }
 
+    default ClEvent writeAsyncByte (int offset, byte[] array){
+        return writeAsyncByte(offset, null, array);
+    }
+
+    default ClEvent writeAsyncByte (ClEventList events, byte[] array){
+        return writeAsyncByte(0, events, array);
+    }
+
+    default ClEvent writeAsyncByte (byte[] array){
+        return writeAsyncByte(0, null, array);
+    }
+
+    @SuppressWarnings("unchecked")
+    default ClEvent writeNextAsyncByte (ClEventList events, byte[] array){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        int offset = buffer.pointer;
+
+        buffer.pointer += array.length / dataProcessor.getSizeStruct();
+
+        return writeAsyncByte(offset, events, array);
+    }
+
+    default ClEvent writeNextAsyncByte (byte[] array){
+        return writeNextAsyncByte(null, array);
+    }
+
+    @SuppressWarnings("unchecked")
     default void writeSyncByte (int offset, ClEventList events, byte[] array){
         T buffer = (T) this;
 
@@ -365,7 +460,7 @@ public interface Writable
                 buffer.stagingBuffer.clear();
             }
 
-            tempNativeBuffer.put(array);
+            tempNativeBuffer.put(array).rewind();
 
             int errorCode = CL10.clEnqueueWriteBuffer(
                     buffer.context.getCommandQueue(),
@@ -397,5 +492,36 @@ public interface Writable
                 MemoryUtil.memFree(tempNativeBuffer);
             }
         }
+    }
+
+    default void writeSyncByte (int offset, byte[] array){
+        writeSyncByte(offset, null, array);
+    }
+
+    default void writeSyncByte (ClEventList events, byte[] array){
+        writeSyncByte(0, events, array);
+    }
+
+    default void writeSyncByte (byte[] array){
+        writeSyncByte(0, null, array);
+    }
+
+    @SuppressWarnings("unchecked")
+    default void writeNextSyncByte (ClEventList events, byte[] array){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        int offset = buffer.pointer;
+
+        buffer.pointer += array.length / dataProcessor.getSizeStruct();
+
+        writeSyncByte(offset, events, array);
+    }
+
+    default void writeNextSyncByte (byte[] array){
+        writeNextSyncByte(null, array);
     }
 }
