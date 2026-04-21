@@ -16,93 +16,56 @@
 
 package io.github.kushnirvladyslav.memory.buffer;
 
-import io.github.kushnirvladyslav.exceptions.BufferDestructionException;
-import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
 import io.github.kushnirvladyslav.kernel.Kernel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Abstract base class for OpenCL buffers that can be bound to kernels.
- * Provides functionality for managing kernel arguments and buffer bindings.
- *
- * <p>This class extends {@link AbstractBuffer} and adds the ability to:
- * <ul>
- *   <li>Bind buffer to kernel arguments</li>
- *   <li>Track kernel bindings</li>
- *   <li>Manage kernel argument indices</li>
- * </ul>
- * 
- *
- * @since 1.0
- * @author Vladyslav Kushnir
- */
-public abstract class KernelAwareBuffer
-        extends AbstractBuffer
-        implements AdditionalLifecycle {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public abstract class KernelAwareBuffer extends BaseBuffer {
     private static final Logger logger = LoggerFactory.getLogger(KernelAwareBuffer.class);
 
-    /**
-     * Map to store kernel bindings and their argument indices
-     * Key: Kernel ID, Value: Argument Index
-     */
-    private final Map<Long, Integer> kernelBindings;
+    protected final Map<Long, Integer> kernelBindings;
 
-    /**
-     * Creates a new KernelAwareBuffer instance.
-     */
-    protected KernelAwareBuffer() {
-        super();
-        this.kernelBindings = new ConcurrentHashMap<>();
-        logger.debug("Created new KernelAwareBuffer instance");
+    protected KernelAwareBuffer(BaseBufferBuilder<?, ?> builder) {
+        super(builder);
+
+        kernelBindings = new ConcurrentHashMap<>();
     }
 
-    /**
-     * Binds this buffer to a kernel at the specified argument index.
-     *
-     * @param kernel the OpenCL kernel instance
-     * @param argIndex the index of the kernel argument
-     * @throws IllegalArgumentException if the kernel is null or argIndex is negative
-     * @throws BufferInitializationException if the buffer is not initialized or binding fails
-     * @throws BufferDestructionException if the buffer has been closed
-     */
-    public void bindKernel(Kernel kernel, int argIndex) {
-        checkIsNotDestroy();
+    public void bindToKernel(Kernel kernel, int argIndex) {
         if (kernel == null) {
-            String message = String.format("Kernel cannot be null for buffer '%s'", getBufferName());
+            String message = String.format("Kernel cannot be null for buffer '%s'", name);
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
-        bindKernel(kernel.getClKernel(), argIndex);
+        bindToKernel(kernel.getClKernel(), argIndex);
     }
 
-    /**
-     * Binds this buffer to a kernel at the specified argument index.
-     *
-     * @param kernel the OpenCL kernel to bind to
-     * @param argIndex the index of the kernel argument
-     * @throws IllegalArgumentException if the kernel is invalid or argIndex is negative
-     * @throws BufferOperationException if the buffer is not initialized or binding fails
-     */
-    public void bindKernel(long kernel, int argIndex) {
-        if (isRunning()) {
-            String message = String.format("Cannot bind uninitialized buffer '%s' to kernel", getBufferName());
-            logger.error(message);
-            throw new BufferOperationException(message);
-        }
+    public void bindToKernel(long kernel, int argIndex) {
+        checkNotClosed();
 
         if (kernel == 0) {
-            String message = String.format("Invalid kernel (0) for buffer '%s'", getBufferName());
+            String message = String.format("Invalid kernel (0) for buffer '%s'", name);
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
 
         if (argIndex < 0) {
-            String message = String.format("Invalid argument index (%d) for buffer '%s'", argIndex, getBufferName());
+            String message = String.format("Invalid argument index (%d) for buffer '%s'", argIndex, getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        if(kernelBindings.containsKey(kernel)){
+            if (kernelBindings.get(kernel) == argIndex){
+                logger.warn("Buffer {} is already bound to kernel {}.", getName(), kernel);
+                return;
+            }
+            String message = String.format("Buffer '%s' cannot be bound to kernel (%d) by argument number (%d) because it is already bound to argument (%d).",
+                    getName(), kernel, kernelBindings.get(kernel), argIndex);
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
@@ -110,55 +73,66 @@ public abstract class KernelAwareBuffer
         try {
             setKernelArg(kernel, argIndex);
             kernelBindings.put(kernel, argIndex);
-            logger.debug("Buffer '{}' bound to kernel {} at index {}", getBufferName(), kernel, argIndex);
+            logger.debug("Buffer '{}' bound to kernel {} at index {}", getName(), kernel, argIndex);
         } catch (Exception e) {
-            String message = String.format("Failed to bind buffer '%s' to kernel", getBufferName());
+            String message = String.format("Failed to bind buffer '%s' to kernel", getName());
             logger.error(message, e);
             throw new BufferOperationException(message, e);
         }
     }
 
-    /**
-     * Unbinds this buffer from a specific kernel.
-     *
-     * @param kernel the Kernel instance to unbind from
-     * @return true if the buffer was bound and is now unbound, false if it wasn't bound
-     */
+    protected abstract void setKernelArg (long targetKernel, int argIndex);
+
+    protected void rebindAllKernels(){
+        checkNotClosed();
+
+        if (kernelBindings.isEmpty()) {
+            logger.debug("No kernel bindings to update for buffer '{}'", name);
+            return;
+        }
+
+        for (Map.Entry<Long, Integer> binding : kernelBindings.entrySet()) {
+            long kernelPtr = binding.getKey();
+            int argIndex = binding.getValue();
+
+            try {
+                setKernelArg(kernelPtr, argIndex);
+            } catch (Exception e) {
+                String message = String.format("Failed to update kernel argument for kernel (%d) at index (%d) for buffer '%s'",
+                        kernelPtr, argIndex, name);
+                logger.error(message);
+                throw new IllegalStateException(message, e);
+            }
+        }
+    }
+
     public boolean unbindKernel(Kernel kernel) {
         if (kernel == null) {
-            logger.warn("Attempted to unbind from null kernel for buffer '{}'", getBufferName());
+            logger.warn("Attempted to unbind from null kernel for buffer '{}'", getName());
             return false;
         }
         return unbindKernel(kernel.getClKernel());
     }
 
-    /**
-     * Unbinds this buffer from a specific kernel.
-     *
-     * @param kernel the OpenCL kernel to unbind from
-     * @return true if the buffer was bound and is now unbound, false if it wasn't bound
-     */
     public boolean unbindKernel(long kernel) {
+        checkNotClosed();
+
         if (kernel == 0) {
-            logger.warn("Attempted to unbind from invalid kernel (0) for buffer '{}'", getBufferName());
+            logger.warn("Attempted to unbind from invalid kernel (0) for buffer '{}'", getName());
             return false;
         }
 
         Integer removedIndex = kernelBindings.remove(kernel);
         if (removedIndex != null) {
             logger.debug("Buffer '{}' unbound from kernel {} (was at index {})",
-                    getBufferName(), kernel, removedIndex);
+                    getName(), kernel, removedIndex);
             return true;
         }
+
+        logger.debug("Buffer '{}' was not bound to kernel {}", name, kernel);
         return false;
     }
 
-    /**
-     * Gets the argument index for this buffer in the specified kernel.
-     *
-     * @param kernel the Kernel instance to check
-     * @return the argument index, or -1 if the buffer is not bound to this kernel
-     */
     public int getKernelArgIndex(Kernel kernel) {
         if (kernel == null) {
             return -1;
@@ -166,22 +140,10 @@ public abstract class KernelAwareBuffer
         return getKernelArgIndex(kernel.getClKernel());
     }
 
-    /**
-     * Gets the argument index for this buffer in the specified kernel.
-     *
-     * @param kernel the OpenCL kernel to check
-     * @return the argument index, or -1 if the buffer is not bound to this kernel
-     */
     public int getKernelArgIndex(long kernel) {
         return kernelBindings.getOrDefault(kernel, -1);
     }
 
-    /**
-     * Checks if this buffer is bound to a specific kernel.
-     *
-     * @param kernel the Kernel instance to check
-     * @return true if the buffer is bound to the kernel, false otherwise
-     */
     public boolean isBoundToKernel(Kernel kernel) {
         if (kernel == null) {
             return false;
@@ -189,50 +151,16 @@ public abstract class KernelAwareBuffer
         return isBoundToKernel(kernel.getClKernel());
     }
 
-    /**
-     * Checks if this buffer is bound to a specific kernel.
-     *
-     * @param kernel the OpenCL kernel to check
-     * @return true if the buffer is bound to the kernel, false otherwise
-     */
     public boolean isBoundToKernel(long kernel) {
         return kernelBindings.containsKey(kernel);
     }
 
     @Override
-    public void additionalInit() {
-        logger.debug("Performing additional initialization for KernelAwareBuffer '{}'", getBufferName());
-    }
-
-    @Override
-    public void additionalCleanup() {
-        logger.debug("Performing additional cleanup for KernelAwareBuffer '{}'", getBufferName());
-
-        if (!kernelBindings.isEmpty()) {
-            logger.debug("Cleaning up {} kernel bindings for buffer '{}'",
-                    kernelBindings.size(), getBufferName());
+    protected void performDestroy(){
+        if(kernelBindings != null) {
             kernelBindings.clear();
         }
-    }
 
-    /**
-     * Updates the kernel argument for this buffer in all bound kernels.
-     * This method automatically updates all kernels where this buffer is bound
-     * with their previously assigned argument indices.
-     *
-     * @throws BufferDestructionException if the buffer has been closed
-     * @throws BufferOperationException if failed to pass arguments
-     */
-    public void setAllKernelArgs() {
-        checkIsNotDestroy();
-
-        for (Map.Entry<Long, Integer> binding : kernelBindings.entrySet()) {
-            try {
-                setKernelArg(binding.getKey(), binding.getValue());
-            } catch (Exception e) {
-                logger.error("Failed to update kernel argument for kernel {} at index {}",
-                        binding.getKey(), binding.getValue(), e);
-            }
-        }
+        super.performDestroy();
     }
 }

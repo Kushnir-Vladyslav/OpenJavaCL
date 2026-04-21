@@ -18,13 +18,13 @@ package io.github.kushnirvladyslav.Buffers;
 
 import io.github.kushnirvladyslav.memory.data.typical.FloatDataProcessor;
 import io.github.kushnirvladyslav.memory.data.typical.IntDataProcessor;
-import io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.LocalBuffer;
-import io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.LocalBufferBuilder;
+import io.github.kushnirvladyslav.memory.buffer.typedBuffer.LocalBuffer;
+import io.github.kushnirvladyslav.memory.buffer.typedBuffer.LocalBufferBuilder;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
 import io.github.kushnirvladyslav.*;
 import io.github.kushnirvladyslav.exceptions.BufferDestructionException;
-import io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.ParameterBuffer;
-import io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.ParameterBufferBuilder;
+import io.github.kushnirvladyslav.memory.buffer.typedBuffer.ParameterBuffer;
+import io.github.kushnirvladyslav.memory.buffer.typedBuffer.ParameterBufferBuilder;
 import org.junit.jupiter.api.*;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;

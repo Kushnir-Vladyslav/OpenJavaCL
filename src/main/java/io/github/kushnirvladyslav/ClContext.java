@@ -16,7 +16,7 @@
 
 package io.github.kushnirvladyslav;
 
-import io.github.kushnirvladyslav.memory.newBuffer.BufferManager;
+import io.github.kushnirvladyslav.memory.buffer.BufferManager;
 import io.github.kushnirvladyslav.exceptions.ResourceAllocationException;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
 import io.github.kushnirvladyslav.util.StatusCL;
