@@ -28,15 +28,15 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 
-public abstract class DynamicalGlobalBuffer
+public abstract class GlobalDynamicalBuffer
         extends CopyableGlobalBuffer{
-    private static final Logger logger = LoggerFactory.getLogger(DynamicalGlobalBuffer.class);
+    private static final Logger logger = LoggerFactory.getLogger(GlobalDynamicalBuffer.class);
 
-    private static final double capacityMultiplier = 1.5;
-    private static final int minCapacity = 10;
+    protected static final double capacityMultiplier = 1.5;
+    protected static final int minCapacity = 10;
     private static final double shrinkFactor = 2.0;
 
-    public DynamicalGlobalBuffer(DynamicalGlobalBufferBuilder<?, ?> builder) {
+    public GlobalDynamicalBuffer(GlobalDynamicalBufferBuilder<?, ?> builder) {
         super(builder);
     }
 

@@ -20,7 +20,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Manager class for OpenCL buffer objects.
@@ -49,7 +51,7 @@ import java.util.List;
  */
 public class BufferManager {
     private static final Logger logger = LoggerFactory.getLogger(BufferManager.class);
-    private final List<BaseBuffer> buffers = new ArrayList<>();
+    private final Map<String, BaseBuffer> buffers = new LinkedHashMap<>();
 
     /**
      * Registers a buffer with this manager.
@@ -64,8 +66,15 @@ public class BufferManager {
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
+        if (buffers.containsKey(buffer.getName())){
+            String message = String.format(
+                    "Buffer with name '%s' is already registered in this context",
+                    buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
         logger.debug("Registering buffer '{}'", buffer.getName());
-        buffers.add(buffer);
+        buffers.put(buffer.getName(), buffer);
     }
 
     /**
@@ -74,11 +83,14 @@ public class BufferManager {
      */
     public void releaseAll() {
         logger.debug("Releasing all buffers (count: {})", buffers.size());
-        for (BaseBuffer buffer : buffers) {
+
+        List<BaseBuffer> snapshot = new ArrayList<>(buffers.values());
+        buffers.clear();
+
+        for (BaseBuffer buffer : snapshot) {
             logger.trace("Destroying buffer '{}'", buffer.getName());
             buffer.destroy();
         }
-        buffers.clear();
         logger.debug("All buffers released and cleared");
     }
 
@@ -97,11 +109,10 @@ public class BufferManager {
         }
 
         logger.trace("Looking up buffer '{}'", bufferName);
-        for (BaseBuffer buffer : buffers) {
-            if (buffer.getName().equals(bufferName)) {
-                logger.debug("Found buffer '{}'", bufferName);
-                return buffer;
-            }
+        BaseBuffer buffer = buffers.get(bufferName);
+        if(buffer != null){
+            logger.debug("Found buffer '{}'", bufferName);
+            return buffer;
         }
         logger.debug("Buffer '{}' not found", bufferName);
         return null;
@@ -120,7 +131,7 @@ public class BufferManager {
             throw new IllegalArgumentException(message);
         }
         logger.debug("Removing buffer '{}'", buffer.getName());
-        buffers.remove(buffer);
+        buffers.remove(buffer.getName());
     }
 
     /**
@@ -137,7 +148,7 @@ public class BufferManager {
             throw new IllegalArgumentException(message);
         }
         logger.debug("Releasing buffer '{}'", buffer.getName());
-        buffers.remove(buffer);
+        buffers.remove(buffer.getName());
         buffer.destroy();
     }
 
@@ -155,10 +166,10 @@ public class BufferManager {
             throw new IllegalArgumentException(message);
         }
 
-        BaseBuffer buffer = getBuffer(bufferName);
+        BaseBuffer buffer = buffers.get(bufferName);
         if (buffer != null) {
             logger.debug("Releasing buffer '{}'", bufferName);
-            buffers.remove(buffer);
+            buffers.remove(bufferName);
             buffer.destroy();
         } else {
             logger.warn("Cannot release buffer '{}': not found in buffer manager", bufferName);

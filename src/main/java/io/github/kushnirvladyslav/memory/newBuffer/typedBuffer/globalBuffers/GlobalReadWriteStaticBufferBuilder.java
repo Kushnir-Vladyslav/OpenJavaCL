@@ -15,12 +15,11 @@
  */
 
 package io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.globalBuffers;
-
-import io.github.kushnirvladyslav.memory.newBuffer.CopyableGlobalBufferBuilder;
+import io.github.kushnirvladyslav.memory.newBuffer.GlobalStaticBufferBuilder;
 import io.github.kushnirvladyslav.memory.util.HostMemoryAccess;
 
 public class GlobalReadWriteStaticBufferBuilder
-        extends CopyableGlobalBufferBuilder<GlobalReadWriteStaticBufferBuilder, GlobalReadWriteStaticBuffer>
+        extends GlobalStaticBufferBuilder<GlobalReadWriteStaticBufferBuilder, GlobalReadWriteStaticBuffer>
 {
 
     public GlobalReadWriteStaticBufferBuilder(){

@@ -85,6 +85,10 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
     }
 
     protected String getName () {
+        return  name == null ? "Unnamed buffer" : name;
+    }
+
+    protected String consumeName(){
         if (name == null) {
             return "Unnamed buffer " + nameCounter.getAndIncrement();
         } else {
@@ -109,6 +113,13 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
     }
 
     protected DataProcessor getDataObject(){
+        if (dataClass == null) {
+            String message = name != null
+                    ? String.format("DataProcessor class must be specified before building buffer '%s'. Call withDataClass() first.", name)
+                    : "DataProcessor class must be specified before building buffer. Call withDataClass() first.";
+            logger.error(message);
+            throw new BufferInitializationException(message);
+        }
         try {
             return (DataProcessor) dataClass.getConstructor().newInstance();
         } catch (Exception e) {
@@ -122,9 +133,8 @@ public abstract class BaseBufferBuilder <T extends BaseBufferBuilder<T, B>, B ex
         try {
             context.getBufferManager().registerBuffer(buffer);
         } catch (Exception e) {
-            String message = String.format("Failed to instantiate data class %s: %s",
-                    dataClass != null ? dataClass.getSimpleName() : "null",
-                    e.getMessage());
+            String message = String.format( "Failed to register buffer '%s' in context: %s",
+                    buffer.getName(), e.getMessage());
             logger.error(message);
 
             try {

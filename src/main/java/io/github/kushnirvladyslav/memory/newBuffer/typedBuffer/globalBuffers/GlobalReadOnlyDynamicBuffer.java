@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package io.github.kushnirvladyslav.memory.newBuffer;
+package io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.globalBuffers;
+import io.github.kushnirvladyslav.memory.newBuffer.GlobalDynamicalBuffer;
+import io.github.kushnirvladyslav.memory.newBuffer.Readable;
 
-public abstract class DynamicalGlobalBufferBuilder
-        <T extends DynamicalGlobalBufferBuilder<T, B>, B extends DynamicalGlobalBuffer>
-        extends CopyableGlobalBufferBuilder<T, B> {
+public class GlobalReadOnlyDynamicBuffer
+        extends GlobalDynamicalBuffer
+        implements Readable<GlobalReadOnlyDynamicBuffer> {
 
-
+    public GlobalReadOnlyDynamicBuffer(GlobalReadOnlyDynamicBufferBuilder builder){
+        super(builder);
+    }
 }

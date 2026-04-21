@@ -14,15 +14,18 @@
  * limitations under the License.
  */
 
-package io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.globalBuffers;
-import io.github.kushnirvladyslav.memory.newBuffer.GlobalStaticBuffer;
-import io.github.kushnirvladyslav.memory.newBuffer.Writable;
+package io.github.kushnirvladyslav.memory.newBuffer;
 
-public class GlobalWriteOnlyStaticBuffer
-        extends GlobalStaticBuffer
-        implements Writable<GlobalWriteOnlyStaticBuffer> {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    public GlobalWriteOnlyStaticBuffer(GlobalWriteOnlyStaticBufferBuilder builder){
+public abstract class GlobalStaticBuffer
+    extends CopyableGlobalBuffer
+{
+    private static final Logger logger = LoggerFactory.getLogger(GlobalStaticBuffer.class);
+
+
+    protected GlobalStaticBuffer(CopyableGlobalBufferBuilder<?, ?> builder) {
         super(builder);
     }
 }

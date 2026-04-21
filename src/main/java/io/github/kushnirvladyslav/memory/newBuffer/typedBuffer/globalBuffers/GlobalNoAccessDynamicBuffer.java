@@ -15,21 +15,13 @@
  */
 
 package io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.globalBuffers;
-import io.github.kushnirvladyslav.memory.newBuffer.GlobalStaticBufferBuilder;
-import io.github.kushnirvladyslav.memory.util.HostMemoryAccess;
 
-public class GlobalReadOnlyStaticBufferBuilder
-        extends GlobalStaticBufferBuilder<GlobalReadOnlyStaticBufferBuilder, GlobalReadOnlyStaticBuffer>
-{
+import io.github.kushnirvladyslav.memory.newBuffer.GlobalDynamicalBuffer;
 
-    public GlobalReadOnlyStaticBufferBuilder(){
-        withHostMemoryAccess(HostMemoryAccess.READ_ONLY);
-    }
+public class GlobalNoAccessDynamicBuffer
+        extends GlobalDynamicalBuffer {
 
-    @Override
-    public GlobalReadOnlyStaticBuffer build() {
-        GlobalReadOnlyStaticBuffer buffer = new GlobalReadOnlyStaticBuffer(this);
-        registerBuffer(buffer);
-        return buffer;
+    public GlobalNoAccessDynamicBuffer(GlobalNoAccessDynamicBufferBuilder builder){
+        super(builder);
     }
 }

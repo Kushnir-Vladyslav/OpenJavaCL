@@ -31,7 +31,7 @@ public abstract class GlobalBufferBuilder
     public T withCapacity(int capacity) {
         if(capacity < 1) {
             String message = String.format(
-                    "Capacity must be positive for LocalBuffer. Got: %d", capacity);
+                    "Capacity must be positive for GlobalBuffer. Got: %d", capacity);
             logger.error(message);
             throw new IllegalArgumentException(message);
         }

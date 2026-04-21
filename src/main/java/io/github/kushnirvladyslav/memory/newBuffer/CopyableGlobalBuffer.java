@@ -18,6 +18,7 @@ package io.github.kushnirvladyslav.memory.newBuffer;
 
 import io.github.kushnirvladyslav.exceptions.BufferIndexOutOfBoundsException;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
+import io.github.kushnirvladyslav.memory.util.DeviceMemoryAccess;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
 import io.github.kushnirvladyslav.util.clEvent.ClEvent;
 import io.github.kushnirvladyslav.util.clEvent.ClEventList;
@@ -126,6 +127,20 @@ public abstract class CopyableGlobalBuffer
                     src.dataProcessor.getClass().getSimpleName(),
                     dst.dataProcessor.getClass().getSimpleName()
             );
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        if ((src.flags & DeviceMemoryAccess.WRITE_ONLY.getFlag()) != 0) {
+            String message = String.format("Buffer source cannot be read by device for copying.",
+                    src.getName());
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        if ((dst.flags & DeviceMemoryAccess.READ_ONLY.getFlag()) != 0) {
+            String message = String.format("Buffer destination cannot be write by device for copying.",
+                    dst.getName());
             logger.error(message);
             throw new BufferOperationException(message);
         }

@@ -15,13 +15,10 @@
  */
 
 package io.github.kushnirvladyslav.memory.newBuffer.typedBuffer.globalBuffers;
+import io.github.kushnirvladyslav.memory.newBuffer.GlobalStaticBuffer;
 
-import io.github.kushnirvladyslav.memory.newBuffer.CopyableGlobalBuffer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-public class GlobalNoAccessStaticBuffer extends CopyableGlobalBuffer {
-    private static final Logger logger = LoggerFactory.getLogger(GlobalNoAccessStaticBuffer.class);
+public class GlobalNoAccessStaticBuffer
+        extends GlobalStaticBuffer {
 
     public GlobalNoAccessStaticBuffer(GlobalNoAccessStaticBufferBuilder builder){
         super(builder);

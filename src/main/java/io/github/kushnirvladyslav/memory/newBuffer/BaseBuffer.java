@@ -34,7 +34,7 @@ public abstract class BaseBuffer implements AutoCloseable {
     protected final DataProcessor dataProcessor;
 
     protected BaseBuffer(BaseBufferBuilder<?, ?> builder) {
-        this.name = builder.getName();
+        this.name = builder.consumeName();
         this.context = builder.getContext();
         this.dataProcessor = builder.getDataObject();
 
