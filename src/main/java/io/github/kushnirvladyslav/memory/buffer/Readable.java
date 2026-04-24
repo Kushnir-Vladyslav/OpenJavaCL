@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
     Logger logger = LoggerFactory.getLogger(Readable.class);
@@ -216,7 +217,7 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
                 tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
             } else {
                 buffer.stagingBuffer.rewind().limit((int)byteLen);
-                tempNativeBuffer = buffer.stagingBuffer.slice();
+                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
                 buffer.stagingBuffer.clear();
             }
 
@@ -354,7 +355,7 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
                 tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
             } else {
                 buffer.stagingBuffer.rewind().limit((int)byteLen);
-                tempNativeBuffer = buffer.stagingBuffer.slice();
+                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
                 buffer.stagingBuffer.clear();
             }
 
@@ -599,7 +600,7 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
                 tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
             } else {
                 buffer.stagingBuffer.rewind().limit((int)byteLen);
-                tempNativeBuffer = buffer.stagingBuffer.slice();
+                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
                 buffer.stagingBuffer.clear();
             }
 
@@ -663,7 +664,7 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
             throw new IllegalArgumentException(message);
         }
 
-        buffer.pointer += len / structureSize;
+        buffer.pointer += len;
         return readSyncByte(offset, len, events);
     }
 
@@ -725,7 +726,7 @@ public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
                 tempNativeBuffer = MemoryUtil.memAlloc(len);
             } else {
                 buffer.stagingBuffer.rewind().limit(len);
-                tempNativeBuffer = buffer.stagingBuffer.slice();
+                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
                 buffer.stagingBuffer.clear();
             }
 

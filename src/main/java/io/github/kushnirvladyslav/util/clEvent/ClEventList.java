@@ -34,6 +34,10 @@ public class ClEventList {
     private List<ClEvent> eventList = new ArrayList<>();
     private List<Long> activeEvents = new ArrayList<>();
 
+    public ClEventList(ClEvent... events) {
+        for (ClEvent e : events) addEvent(e);
+    }
+
     public void addEvent(ClEvent event){
         if(event == null){
             String message = "ClEvent cannot be null.";
@@ -190,6 +194,13 @@ public class ClEventList {
 
             return new ClEvent(markerEventHandle);
         }
+    }
+
+    public void waitForComplete() {
+        for (ClEvent event : eventList) {
+            event.waitForComplete();
+        }
+        clear();
     }
 
     public void clear() {

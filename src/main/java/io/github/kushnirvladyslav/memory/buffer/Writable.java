@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 public interface Writable
         <T extends CopyableGlobalBuffer & Writable<T>>{
@@ -90,6 +91,7 @@ public interface Writable
 
             ToByteBuffer converter = (ToByteBuffer) dataProcessor;
             converter.convertToByteBuffer(tempNativeBuffer, array);
+            tempNativeBuffer.rewind();
 
             int errorCode = CL10.clEnqueueWriteBuffer(
                     buffer.context.getCommandQueue(),
@@ -218,12 +220,13 @@ public interface Writable
                 tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
             } else {
                 buffer.stagingBuffer.rewind().limit((int)byteLen);
-                tempNativeBuffer = buffer.stagingBuffer.slice();
+                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
                 buffer.stagingBuffer.clear();
             }
 
             ToByteBuffer converter = (ToByteBuffer) dataProcessor;
             converter.convertToByteBuffer(tempNativeBuffer, array);
+            tempNativeBuffer.rewind();
 
             int errorCode = CL10.clEnqueueWriteBuffer(
                     buffer.context.getCommandQueue(),
@@ -458,7 +461,7 @@ public interface Writable
                 tempNativeBuffer = MemoryUtil.memAlloc(len);
             } else {
                 buffer.stagingBuffer.rewind().limit(len);
-                tempNativeBuffer = buffer.stagingBuffer.slice();
+                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
                 buffer.stagingBuffer.clear();
             }
 

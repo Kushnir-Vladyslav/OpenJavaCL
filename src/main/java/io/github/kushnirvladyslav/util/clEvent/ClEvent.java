@@ -84,10 +84,30 @@ public class ClEvent {
         return isDone;
     }
 
+    public void waitForComplete() {
+        synchronized (lock) {
+            if (isDone) return;
+        }
+        long ptr = getEventPointer(); // clRetainEvent всередині
+        if (ptr == 0) return;         // вже завершився між перевірками
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            int errorCode = CL10.clWaitForEvents(
+                    stack.mallocPointer(1).put(0, ptr).rewind()
+            );
+            CL10.clReleaseEvent(ptr);  // балансуємо Retain з getEventPointer
+            if (!OpenCLErrorUtils.isSuccess(errorCode)) {
+                throw new BufferOperationException(
+                        "Failed to wait for event: " +
+                                OpenCLErrorUtils.getCLErrorString(errorCode));
+            }
+        }
+    }
+
     public void setCallback(EventCallback callback, int callbackType) {
         synchronized (lock) {
             if (eventPointer == 0) {
-                throw new IllegalStateException("Event pointer has been released.");
+                callback.onStatusReached(0, CL10.CL_COMPLETE);
+                return;
             }
 
             int errorCode = CL11.clSetEventCallback(
