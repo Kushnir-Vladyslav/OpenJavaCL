@@ -35,21 +35,21 @@ import org.slf4j.LoggerFactory;
  * from various locations and manage their cache. The loader supports both bundled resources
  * and filesystem locations.
  *
- * <p>OpenCL source files can be:</p>
+ * <p>OpenCL source files can be:
  * <ul>
  *   <li>Kernel files - containing main computational kernels</li>
  *   <li>Library files - containing reusable functions, constants, and data structures</li>
  *   <li>Header files - containing type definitions and function declarations</li>
  * </ul>
  *
- * <p>The loader supports several source locations:</p>
+ * <p>The loader supports several source locations:
  * <ul>
  *   <li>Java resources (bundled with the application)</li>
  *   <li>Specific filesystem paths</li>
  *   <li>Multiple search paths</li>
  * </ul>
  *
- * <p>Example usage:</p>
+ * <p>Example usage:
  * <pre>{@code
  * // Load from resources
  * String kernelCode = OpenCLSourceLoader.getSource("matrix_ops.cl");
@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>The loader implements caching to improve performance when the same file
  * is requested multiple times. Cache management methods are provided to control
- * memory usage.</p>
+ * memory usage.
  *
  * @author Vladyslav Kushnir
  * @version 1.0

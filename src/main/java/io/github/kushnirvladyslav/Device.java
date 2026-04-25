@@ -45,9 +45,9 @@ import org.slf4j.LoggerFactory;
  *     <li>Compute capabilities (compute units, work group sizes)</li>
  *     <li>Memory information (global, local, constant memory sizes)</li>
  *     <li>Device type and available features</li>
- * </ul></p>
+ * </ul>
  *
- * <p>Example usage:</p>
+ * <p>Example usage:
  * <pre>{@code
  * Device device = platform.getBestDevice();
  * if (device.isAvailable() && device.isGPU()) {

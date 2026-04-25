@@ -16,264 +16,517 @@
 
 package io.github.kushnirvladyslav.memory.buffer;
 
-import io.github.kushnirvladyslav.memory.data.ConvertToByteBuffer;
-import io.github.kushnirvladyslav.memory.util.CopyDataBufferToBuffer;
+import io.github.kushnirvladyslav.exceptions.BufferOperationException;
+import io.github.kushnirvladyslav.memory.data.DataProcessor;
+import io.github.kushnirvladyslav.memory.data.ToByteBuffer;
+import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
+import io.github.kushnirvladyslav.util.clEvent.ClCustomEvent;
+import io.github.kushnirvladyslav.util.clEvent.ClEvent;
+import io.github.kushnirvladyslav.util.clEvent.ClEventList;
+import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL10;
+import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
-/**
- * Interface for OpenCL buffers that support write operations.
- * Provides methods for writing data to OpenCL buffer and managing buffer content.
- *
- * <p>This interface implements write operations for OpenCL buffers by working in conjunction
- * with {@link AbstractGlobalBuffer}. It provides complete implementation of write operations
- * without requiring additional implementation from implementing classes.</p>
- *
- * @param <T> The type of buffer that implements this interface
- * @author Vladyslav Kushnir
- * @since 1.0
- */
-public interface Writable<T extends AbstractGlobalBuffer & Writable<T>> {
+public interface Writable
+        <T extends CopyableGlobalBuffer & Writable<T>>{
     Logger logger = LoggerFactory.getLogger(Writable.class);
 
-    /**
-     * Writes data to the buffer starting from the beginning.
-     *
-     * @param arr the data array to write
-     * @throws IllegalArgumentException if the input array is null
-     * @throws IllegalStateException    if the write operation fails
-     */
-    default void write(Object arr) {
-        if (arr == null) {
-            String message = "Input array cannot be null";
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-        write(arr, 0);
-    }
-
-    /**
-     * Writes data to the buffer starting at specified offset.
-     *
-     * @param arr    the data array to write
-     * @param offset starting position in the buffer
-     * @throws IllegalArgumentException if the input array is null or offset is negative
-     * @throws IllegalStateException    if the write operation fails
-     */
-    default void write(Object arr, int offset) {
-        @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked")
+    default ClEvent writeAsync (int offset, ClEventList events, Object array){
         T buffer = (T) this;
 
-        if (arr == null) {
-            String message = String.format("Input array cannot be null for buffer '%s'",
-                    buffer.getBufferName());
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        if(array == null){
+            String message = String.format(
+                    "For write data to a buffer '%s', the array of objects cannot be null.",
+                    buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
 
-        if (offset < 0) {
-            String message = String.format("Offset cannot be negative: %d for buffer '%s'",
-                    offset, buffer.getBufferName());
+        if(offset < 0) {
+            String message = String.format(
+                    "To write data to a buffer, the offset passed cannot be negative: offset=%d, for buffer '%s'",
+                    offset, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
 
-        ConvertToByteBuffer converter = (ConvertToByteBuffer) buffer.dataObject;
+        int len = dataProcessor.getSizeArray(array);
 
-        int arrSize = buffer.dataObject.getSizeArray(arr);
-        int dataSize = buffer.dataObject.getSizeStruct();
-
-        if (arrSize + offset > buffer.capacity) {
-            if (buffer instanceof Dynamical<?>) {
-                Dynamical<?> dynamical = (Dynamical<?>) this;
-                logger.debug("Resizing dynamic buffer '{}' to accommodate new data",
-                        buffer.getBufferName());
-                dynamical.resize((int) ((arrSize + offset) * 1.5));
-            } else {
+        if (offset + len > buffer.capacity) {
+            try{
+                buffer.changeCapacity(offset + len, events);
+            } catch (Exception e) {
                 String message = String.format(
-                        "Data size (%d) exceeds static buffer capacity (%d) for buffer '%s'",
-                        arrSize + offset, buffer.capacity, buffer.getBufferName());
+                        "Attempt to write outside buffer bounds: offset=%d, length=%d, capacity=%d for buffer '%s'",
+                        offset, len, buffer.capacity, buffer.getName());
+                logger.error(message, e);
+                throw new IllegalArgumentException(message, e);
+            }
+        }
+
+        long byteLen = (long) len * dataProcessor.getSizeStruct();
+        if (byteLen > Integer.MAX_VALUE) {
+            String message = String.format(
+                    "Write size exceeds byte[] limit (2GB). Try to write %d byte from buffer '%s'",
+                    byteLen, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        try (MemoryStack stack = MemoryStack.stackPush()){
+            PointerBuffer rowEvent = stack.mallocPointer(1);
+            ClCustomEvent customEvent = new ClCustomEvent(buffer.context);
+            ByteBuffer tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
+
+            ToByteBuffer converter = (ToByteBuffer) dataProcessor;
+            converter.convertToByteBuffer(tempNativeBuffer, array);
+            tempNativeBuffer.rewind();
+
+            int errorCode = CL10.clEnqueueWriteBuffer(
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
+                    false,
+                    (long) offset * dataProcessor.getSizeStruct(),
+                    tempNativeBuffer,
+                    events != null ? events.getEventList(stack) : null,
+                    rowEvent
+            );
+
+            if (events != null) {
+                events.releaseEvents();
+            }
+
+            if (!OpenCLErrorUtils.isSuccess(errorCode)) {
+                MemoryUtil.memFree(tempNativeBuffer);
+
+                customEvent.setComplete();
+                String message = String.format(
+                        "OpenCL write buffer failed for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
                 logger.error(message);
-                throw new IllegalStateException(message);
+                throw new BufferOperationException(message, errorCode);
+            }
+
+            ClEvent thisEvent = new ClEvent(rowEvent.get(0));
+            thisEvent.onComplete((long event, int status) ->{
+                try {
+                    if (OpenCLErrorUtils.isSuccess(status)) {
+                        customEvent.setComplete();
+                    } else {
+                        customEvent.setError(status);
+                    }
+                } finally {
+                    MemoryUtil.memFree(tempNativeBuffer);
+                }
+            });
+
+            return customEvent;
+        }
+    }
+
+    default ClEvent writeAsync (int offset, Object array){
+        return writeAsync(offset, null, array);
+    }
+
+    default ClEvent writeAsync (ClEventList events, Object array){
+        return writeAsync(0, events, array);
+    }
+
+    default ClEvent writeAsync (Object array){
+        return writeAsync(0, null, array);
+    }
+
+    @SuppressWarnings("unchecked")
+    default ClEvent writeNextAsync (ClEventList events, Object array){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+        int len = dataProcessor.getSizeArray(array);
+        int offset = buffer.pointer;
+
+        buffer.pointer += len;
+
+        return writeAsync(offset, events, array);
+    }
+
+    default ClEvent writeNextAsync (Object array){
+        return writeNextAsync(null, array);
+    }
+
+    @SuppressWarnings("unchecked")
+    default void writeSync (int offset, ClEventList events, Object array){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        if(array == null){
+            String message = String.format(
+                    "For write data to a buffer '%s', the array of objects cannot be null.",
+                    buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        if(offset < 0) {
+            String message = String.format(
+                    "To write data to a buffer, the offset passed cannot be negative: offset=%d, for buffer '%s'",
+                    offset, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        int len = dataProcessor.getSizeArray(array);
+
+        if (offset + len > buffer.capacity) {
+            try{
+                buffer.changeCapacity(offset + len, events);
+            } catch (Exception e) {
+                String message = String.format(
+                        "Attempt to write outside buffer bounds: offset=%d, length=%d, capacity=%d for buffer '%s'",
+                        offset, len, buffer.capacity, buffer.getName());
+                logger.error(message, e);
+                throw new IllegalArgumentException(message, e);
+            }
+        }
+
+        long byteLen = (long) len * dataProcessor.getSizeStruct();
+        if (byteLen > Integer.MAX_VALUE) {
+            String message = String.format(
+                    "Write size exceeds byte[] limit (2GB). Try to write %d byte from buffer '%s'",
+                    byteLen, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        ByteBuffer tempNativeBuffer = null;
+
+        try (MemoryStack stack = MemoryStack.stackPush()){
+            if(buffer.stagingBuffer == null) {
+                tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
+            } else {
+                buffer.stagingBuffer.rewind().limit((int)byteLen);
+                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
+                buffer.stagingBuffer.clear();
+            }
+
+            ToByteBuffer converter = (ToByteBuffer) dataProcessor;
+            converter.convertToByteBuffer(tempNativeBuffer, array);
+            tempNativeBuffer.rewind();
+
+            int errorCode = CL10.clEnqueueWriteBuffer(
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
+                    true,
+                    (long) offset * dataProcessor.getSizeStruct(),
+                    tempNativeBuffer,
+                    events != null ? events.getEventList(stack) : null,
+                    null
+            );
+
+            if (events != null) {
+                events.releaseEvents();
+            }
+
+            if (!OpenCLErrorUtils.isSuccess(errorCode)) {
+                if(buffer.stagingBuffer == null){
+                    MemoryUtil.memFree(tempNativeBuffer);
+                }
+
+                String message = String.format(
+                        "OpenCL write buffer failed for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
+                logger.error(message);
+                throw new BufferOperationException(message, errorCode);
+            }
+        }finally {
+            if(buffer.stagingBuffer == null && tempNativeBuffer != null){
+                MemoryUtil.memFree(tempNativeBuffer);
+            }
+        }
+    }
+
+    default void writeSync (int offset, Object array){
+        writeSync(offset, null, array);
+    }
+
+    default void writeSync (ClEventList events, Object array){
+        writeSync(0, events, array);
+    }
+
+    default void writeSync (Object array){
+        writeSync(0, null, array);
+    }
+
+    @SuppressWarnings("unchecked")
+    default void writeNextSync (ClEventList events, Object array){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+        int len = dataProcessor.getSizeArray(array);
+        int offset = buffer.pointer;
+
+        buffer.pointer += len;
+
+        writeSync(offset, events, array);
+    }
+
+    default void writeNextSync (Object array){
+        writeNextSync(null, array);
+    }
+
+    @SuppressWarnings("unchecked")
+    default ClEvent writeAsyncByte (int offset, ClEventList events, byte[] array){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        if(array == null){
+            String message = String.format(
+                    "For write data to a buffer '%s', the array of byte cannot be null.",
+                    buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        if(offset < 0) {
+            String message = String.format(
+                    "To write data to a buffer, the offset passed cannot be negative: offset=%d, for buffer '%s'",
+                    offset, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        int len = array.length;
+        int structureSize = dataProcessor.getSizeStruct();
+
+        if ((buffer.capacity - offset) * structureSize < len) {
+            try{
+                int newCapacity = offset + (int)Math.ceil((double) len / structureSize);
+                buffer.changeCapacity(newCapacity, events);
+            } catch (Exception e) {
+                String message = String.format(
+                        "Attempt to write outside buffer bounds: offset=%d, length=%d, capacity=%d for buffer '%s'",
+                        offset, len, buffer.capacity, buffer.getName());
+                logger.error(message, e);
+                throw new IllegalArgumentException(message, e);
+            }
+        }
+
+        if (len % dataProcessor.getSizeStruct() != 0) {
+            logger.warn("The size of the passed array ({}) for writing to the buffer {} is not a multiple of the number of elements ({}).",
+                    len, buffer.getName(), dataProcessor.getSizeStruct());
+        }
+
+        try (MemoryStack stack = MemoryStack.stackPush()){
+            PointerBuffer rowEvent = stack.mallocPointer(1);
+            ClCustomEvent customEvent = new ClCustomEvent(buffer.context);
+            ByteBuffer tempNativeBuffer = (ByteBuffer) MemoryUtil.memAlloc(len).put(array).rewind();
+
+            int errorCode = CL10.clEnqueueWriteBuffer(
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
+                    false,
+                    (long) offset * structureSize,
+                    tempNativeBuffer,
+                    events != null ? events.getEventList(stack) : null,
+                    rowEvent
+            );
+
+            if (events != null) {
+                events.releaseEvents();
+            }
+
+            if (!OpenCLErrorUtils.isSuccess(errorCode)) {
+                MemoryUtil.memFree(tempNativeBuffer);
+
+                customEvent.setComplete();
+                String message = String.format(
+                        "OpenCL write buffer failed for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
+                logger.error(message);
+                throw new BufferOperationException(message, errorCode);
+            }
+
+            ClEvent thisEvent = new ClEvent(rowEvent.get(0));
+            thisEvent.onComplete((long event, int status) ->{
+                try {
+                    if (OpenCLErrorUtils.isSuccess(status)) {
+                        customEvent.setComplete();
+                    } else {
+                        customEvent.setError(status);
+                    }
+                } finally {
+                    MemoryUtil.memFree(tempNativeBuffer);
+                }
+            });
+
+            return customEvent;
+        }
+    }
+
+    default ClEvent writeAsyncByte (int offset, byte[] array){
+        return writeAsyncByte(offset, null, array);
+    }
+
+    default ClEvent writeAsyncByte (ClEventList events, byte[] array){
+        return writeAsyncByte(0, events, array);
+    }
+
+    default ClEvent writeAsyncByte (byte[] array){
+        return writeAsyncByte(0, null, array);
+    }
+
+    @SuppressWarnings("unchecked")
+    default ClEvent writeNextAsyncByte (ClEventList events, byte[] array){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        int offset = buffer.pointer;
+
+        buffer.pointer += array.length / dataProcessor.getSizeStruct();
+
+        return writeAsyncByte(offset, events, array);
+    }
+
+    default ClEvent writeNextAsyncByte (byte[] array){
+        return writeNextAsyncByte(null, array);
+    }
+
+    @SuppressWarnings("unchecked")
+    default void writeSyncByte (int offset, ClEventList events, byte[] array){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        if(array == null){
+            String message = String.format(
+                    "For write data to a buffer '%s', the array of byte cannot be null.",
+                    buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        if(offset < 0) {
+            String message = String.format(
+                    "To write data to a buffer, the offset passed cannot be negative: offset=%d, for buffer '%s'",
+                    offset, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        int len = array.length;
+        int structureSize = dataProcessor.getSizeStruct();
+
+        if ((buffer.capacity - offset) * structureSize < len) {
+            try{
+                int newCapacity = offset + (int)Math.ceil((double) len / structureSize);
+                buffer.changeCapacity(newCapacity, events);
+            } catch (Exception e) {
+                String message = String.format(
+                        "Attempt to write outside buffer bounds: offset=%d, length=%d, capacity=%d for buffer '%s'",
+                        offset, len, buffer.capacity, buffer.getName());
+                logger.error(message, e);
+                throw new IllegalArgumentException(message, e);
             }
         }
 
         ByteBuffer tempNativeBuffer = null;
 
-        try {
-            if (buffer instanceof Dynamical<?>) {
-                tempNativeBuffer = (ByteBuffer) buffer.nativeBuffer.rewind().limit(arrSize * dataSize);
-                logger.trace("Using existing native buffer for dynamic buffer '{}'",
-                        buffer.getBufferName());
+        try (MemoryStack stack = MemoryStack.stackPush()){
+            if(buffer.stagingBuffer == null) {
+                tempNativeBuffer = MemoryUtil.memAlloc(len);
             } else {
-                tempNativeBuffer = MemoryUtil.memAlloc(arrSize * dataSize);
-                if (tempNativeBuffer == null) {
-                    String message = String.format(
-                            "Failed to allocate temporary native buffer for buffer '%s'",
-                            buffer.getBufferName());
-                    logger.error(message);
-                    throw new IllegalStateException(message);
-                }
-                logger.trace("Allocated temporary native buffer for static buffer '{}'",
-                        buffer.getBufferName());
+                buffer.stagingBuffer.rewind().limit(len);
+                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
+                buffer.stagingBuffer.clear();
             }
 
-            converter.convertToByteBuffer(tempNativeBuffer, arr);
-
-            logger.debug("Writing {} elements to buffer '{}' at offset {}",
-                    arrSize, buffer.getBufferName(), offset);
+            tempNativeBuffer.put(array).rewind();
 
             int errorCode = CL10.clEnqueueWriteBuffer(
-                    buffer.openClContext.getCommandQueue(),
-                    buffer.clBuffer,
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
                     true,
-                    offset * dataSize,
+                    (long) offset * dataProcessor.getSizeStruct(),
                     tempNativeBuffer,
-                    null,
+                    events != null ? events.getEventList(stack) : null,
                     null
             );
 
-            if (errorCode != CL10.CL_SUCCESS) {
+            if (events != null) {
+                events.releaseEvents();
+            }
+
+            if (!OpenCLErrorUtils.isSuccess(errorCode)) {
+                if(buffer.stagingBuffer == null){
+                    MemoryUtil.memFree(tempNativeBuffer);
+                }
+
                 String message = String.format(
-                        "OpenCL write buffer failed for buffer '%s': error code %d",
-                        buffer.getBufferName(), errorCode);
+                        "OpenCL write buffer failed for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
                 logger.error(message);
-                throw new IllegalStateException(message);
+                throw new BufferOperationException(message, errorCode);
             }
-
-            buffer.size += arrSize;
-
-            logger.debug("Successfully wrote data to buffer '{}', new size: {}",
-                    buffer.getBufferName(), buffer.size);
-
-        }catch (Exception e) {
-            String message = String.format("Failed to write to buffer '%s'", buffer.getBufferName());
-            logger.error(message, e);
-            throw new IllegalStateException(message, e);
-        } finally {
-            if (!(buffer instanceof Dynamical<?>) && tempNativeBuffer != null) {
+        }finally {
+            if(buffer.stagingBuffer == null && tempNativeBuffer != null){
                 MemoryUtil.memFree(tempNativeBuffer);
-                logger.trace("Freed temporary native buffer for static buffer '{}'",
-                        buffer.getBufferName());
-            } else if (buffer instanceof Dynamical<?> && tempNativeBuffer != null) {
-                buffer.nativeBuffer.clear();
             }
         }
     }
 
-    /**
-     * Appends data to the end of the buffer.
-     *
-     * @param arr the data array to append
-     * @throws IllegalArgumentException if the input array is null
-     * @throws IllegalStateException if the write operation fails
-     */
-    default void add(Object arr) {
-        @SuppressWarnings("unchecked")
-        T buffer = (T) this;
-        if (arr == null) {
-            String message = String.format("Input array cannot be null for buffer '%s'",
-                    buffer.getBufferName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-        logger.debug("Adding data to the end of buffer '{}' at position {}",
-                buffer.getBufferName(), buffer.size);
-        write(arr, buffer.size);
+    default void writeSyncByte (int offset, byte[] array){
+        writeSyncByte(offset, null, array);
     }
 
-    /**
-     * Removes one element at the specified index.
-     *
-     * @param index the position from which to remove the element
-     * @throws IllegalArgumentException if the index is invalid
-     * @throws IllegalStateException if the remove operation fails
-     */
-    default void remove(int index) {
-        remove(index, 1);
+    default void writeSyncByte (ClEventList events, byte[] array){
+        writeSyncByte(0, events, array);
     }
 
-    /**
-     * Removes specified number of elements starting at the given index.
-     * For dynamic buffers, also checks if buffer should be shrunk after removal.
-     *
-     * @param index starting position from which to remove elements
-     * @param num number of elements to remove
-     * @throws IllegalArgumentException if the index or number is invalid
-     * @throws IllegalStateException if the remove operation fails
-     */
-    default void remove(int index, int num) {
-        @SuppressWarnings("unchecked")
+    default void writeSyncByte (byte[] array){
+        writeSyncByte(0, null, array);
+    }
+
+    @SuppressWarnings("unchecked")
+    default void writeNextSyncByte (ClEventList events, byte[] array){
         T buffer = (T) this;
 
-        if (index < 0) {
-            String message = String.format("Index cannot be negative: %d for buffer '%s'",
-                    index, buffer.getBufferName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
+        buffer.checkNotClosed();
 
-        if (num <= 0) {
-            String message = String.format("Number of elements to remove must be positive: %d for buffer '%s'",
-                    num, buffer.getBufferName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
+        DataProcessor dataProcessor = buffer.dataProcessor;
 
-        if (index + num > buffer.size) {
-            String message = String.format(
-                    "Cannot remove elements beyond buffer size: index=%d, count=%d, size=%d for buffer '%s'",
-                    index, num, buffer.size, buffer.getBufferName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
+        int offset = buffer.pointer;
 
-        int dataSize = buffer.dataObject.getSizeStruct();
-        logger.debug("Removing {} elements from buffer '{}' at index {}",
-                num, buffer.getBufferName(), index);
+        buffer.pointer += array.length / dataProcessor.getSizeStruct();
 
-        int errorCode = CopyDataBufferToBuffer.copyData(
-                buffer.openClContext,
-                buffer.clBuffer,
-                buffer.clBuffer,
-                (index + num) * dataSize,
-                index * dataSize,
-                (buffer.size - index - num) * dataSize);
+        writeSyncByte(offset, events, array);
+    }
 
-        if (errorCode != CL10.CL_SUCCESS) {
-            String message = String.format(
-                    "Failed to remove elements from buffer '%s': OpenCL error code %d",
-                    buffer.getBufferName(), errorCode);
-            logger.error(message);
-            throw new IllegalStateException(message);
-        }
-
-        buffer.size -= num;
-        logger.debug("Successfully removed elements from buffer '{}', new size: {}",
-                buffer.getBufferName(), buffer.size);
-
-        if (buffer instanceof Dynamical<?>) {
-            Dynamical<?> dynamical = (Dynamical<?>) this;
-            double capacityRatio = (double) buffer.capacity / buffer.size;
-
-            if (capacityRatio > dynamical.getShrinkFactor()) {
-                logger.debug("Buffer '{}' capacity ratio ({}) exceeds shrink factor ({}), resizing...",
-                        buffer.getBufferName(), capacityRatio, dynamical.getShrinkFactor());
-
-                int newCapacity = (int) Math.ceil(buffer.size * dynamical.getCapacityMultiplier());
-                newCapacity = Math.max(newCapacity, dynamical.getMinCapacity());
-
-                logger.debug("Shrinking buffer '{}' capacity from {} to {}",
-                        buffer.getBufferName(), buffer.capacity, newCapacity);
-
-                dynamical.resize(newCapacity);
-            }
-        }
-
+    default void writeNextSyncByte (byte[] array){
+        writeNextSyncByte(null, array);
     }
 }

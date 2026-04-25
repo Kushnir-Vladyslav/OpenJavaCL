@@ -16,22 +16,22 @@
 
 package io.github.kushnirvladyslav.kernel;
 
-import io.github.kushnirvladyslav.memory.buffer.AbstractBuffer;
-import io.github.kushnirvladyslav.OpenClContext;
+import io.github.kushnirvladyslav.ClContext;
+import io.github.kushnirvladyslav.memory.buffer.KernelAwareBuffer;
 import org.lwjgl.PointerBuffer;
 
 public abstract class AbstractKernel {
     protected long kernel;
     protected long program;
 
-    protected OpenClContext context;
+    protected ClContext context;
 
     protected PointerBuffer global;
     protected PointerBuffer local;
 
     private int dimension;
 
-    protected AbstractBuffer[] buffers;
+    protected KernelAwareBuffer[] buffers;
 
     private int numberBuffers;
 

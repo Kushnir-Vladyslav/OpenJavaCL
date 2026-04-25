@@ -48,9 +48,9 @@ import org.slf4j.LoggerFactory;
  *     <li>OpenCL version and supported extensions</li>
  *     <li>Available devices (CPU, GPU, Accelerator)</li>
  *     <li>Host timer resolution (for OpenCL 2.1+)</li>
- * </ul></p>
+ * </ul>
  *
- * <p>Example usage:</p>
+ * <p>Example usage:
  * <pre>{@code
  * Platform platform = OpenCL.getPlatforms().get(0);
  * System.out.println("Platform name: " + platform.getName());

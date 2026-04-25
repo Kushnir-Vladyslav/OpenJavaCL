@@ -24,8 +24,8 @@ class OpenCLTest {
 
     @Test
     void getDefaultContext_ShouldCreateAndReturnSameContext() {
-        OpenClContext context1 = OpenCL.getDefaultContext();
-        OpenClContext context2 = OpenCL.getDefaultContext();
+        ClContext context1 = OpenCL.getDefaultContext();
+        ClContext context2 = OpenCL.getDefaultContext();
 
         assertNotNull(context1, "Default context should not be null");
         assertSame(context1, context2, "Should return same default context instance");
@@ -36,7 +36,7 @@ class OpenCLTest {
 
     @Test
     void createDefaultContext_ShouldSelectBestDevice() {
-        OpenClContext context = OpenCL.createDefaultContext();
+        ClContext context = OpenCL.createDefaultContext();
 
         assertNotNull(context, "Created context should not be null");
         Device device = context.getDevice();
@@ -52,7 +52,7 @@ class OpenCLTest {
 
     @Test
     void registrationContext_ShouldAddContext() {
-        OpenClContext context = new ContextBuilder()
+        ClContext context = new ContextBuilder()
                 .withDevice(defaultDevice)
                 .create();
 
@@ -62,10 +62,10 @@ class OpenCLTest {
 
     @Test
     void destroyContext_ShouldHandleDefaultContext() {
-        OpenClContext context = OpenCL.getDefaultContext();
+        ClContext context = OpenCL.getDefaultContext();
         OpenCL.destroyContext(context);
 
-        OpenClContext newContext = OpenCL.getDefaultContext();
+        ClContext newContext = OpenCL.getDefaultContext();
         assertNotSame(context, newContext,
                 "Should create new default context after destroying old one");
 
