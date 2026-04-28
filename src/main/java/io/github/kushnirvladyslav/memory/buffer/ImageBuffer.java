@@ -36,19 +36,19 @@ public abstract class ImageBuffer
         extends ClMemBuffer{
     private static final Logger logger = LoggerFactory.getLogger(ImageBuffer.class);
 
-    private ImageChannelOrder imageChannelOrder;
-    private ImageChannelDataType imageChannelDataType;
+    protected ImageChannelOrder imageChannelOrder;
+    protected ImageChannelDataType imageChannelDataType;
 
-    private ImageType imageType;
+    protected ImageType imageType;
 
-    private int imageWidth;
-    private int imageHeight;
-    private int imageDepth;
-    private int imageArraySize;
-    private int imageRowPitch;
-    private int imageSlicePitch;
-    private int numMipLevels;
-    private int numSamples;
+    protected int imageWidth;
+    protected int imageHeight;
+    protected int imageDepth;
+    protected int imageArraySize;
+    protected int imageRowPitch;
+    protected int imageSlicePitch;
+    protected int numMipLevels;
+    protected int numSamples;
 
     protected ImageBuffer(ImageBufferBuilder<?, ?> builder) {
         super(builder);

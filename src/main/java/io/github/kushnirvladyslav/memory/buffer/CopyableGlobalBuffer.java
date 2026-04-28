@@ -132,14 +132,14 @@ public abstract class CopyableGlobalBuffer
         }
 
         if ((src.flags & DeviceMemoryAccess.WRITE_ONLY.getFlag()) != 0) {
-            String message = String.format("Buffer source cannot be read by device for copying.",
+            String message = String.format("Buffer '%s' cannot be read by device for copying.",
                     src.getName());
             logger.error(message);
             throw new BufferOperationException(message);
         }
 
         if ((dst.flags & DeviceMemoryAccess.READ_ONLY.getFlag()) != 0) {
-            String message = String.format("Buffer destination cannot be write by device for copying.",
+            String message = String.format("Buffer '%s' cannot be write by device for copying.",
                     dst.getName());
             logger.error(message);
             throw new BufferOperationException(message);
@@ -165,7 +165,7 @@ public abstract class CopyableGlobalBuffer
             }
             catch (BufferOperationException e) {
                 String message = String.format(
-                        "Attempted to write outside destination buffer while copying. Buffer capacity s is d, attempted to write to d.",
+                        "Attempted to write outside destination buffer while copying. Buffer capacity '%s' is %d, attempted to write to %d.",
                         dst.name, dst.capacity, dstOffset + size);
                 logger.error(message);
                 throw new BufferIndexOutOfBoundsException(message);
@@ -200,5 +200,38 @@ public abstract class CopyableGlobalBuffer
 
             return new ClEvent(thisEvent.get(0));
         }
+    }
+
+    public ClEvent copyToImage(CopyableImageBuffer.ImageRegion dstRegion, int offset, ClEventList events){
+        return CopyableImageBuffer.copyFromGlobalBuffer(this, dstRegion, offset, events);
+    }
+
+    public ClEvent copyToImage(CopyableImageBuffer.ImageRegion dstRegion, int offset){
+        return copyToImage(dstRegion, offset, null);
+    }
+
+    public ClEvent copyToImage(CopyableImageBuffer.ImageRegion dstRegion, ClEventList events){
+        return copyToImage(dstRegion, 0, events);
+    }
+
+    public ClEvent copyToImage(CopyableImageBuffer.ImageRegion dstRegion){
+        return copyToImage(dstRegion, 0, null);
+    }
+
+
+    public ClEvent copyFromImage(CopyableImageBuffer.ImageRegion srcRegion, int offset, ClEventList events){
+        return CopyableImageBuffer.copyToGlobalBuffer(srcRegion, this, offset, events);
+    }
+
+    public ClEvent copyFromImage(CopyableImageBuffer.ImageRegion srcRegion, int offset){
+        return copyFromImage(srcRegion, offset, null);
+    }
+
+    public ClEvent copyFromImage(CopyableImageBuffer.ImageRegion srcRegion, ClEventList events){
+        return copyFromImage(srcRegion, 0, events);
+    }
+
+    public ClEvent copyFromImage(CopyableImageBuffer.ImageRegion srcRegion){
+        return copyFromImage(srcRegion, 0, null);
     }
 }

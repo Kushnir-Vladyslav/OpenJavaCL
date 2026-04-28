@@ -19,10 +19,34 @@ package io.github.kushnirvladyslav.memory.util;
 import org.lwjgl.opencl.CL12;
 
 public enum ImageType {
-    IMAGE2D(CL12.CL_MEM_OBJECT_IMAGE2D),
-    IMAGE3D(CL12.CL_MEM_OBJECT_IMAGE3D),
-    IMAGE2D_ARRAY(CL12.CL_MEM_OBJECT_IMAGE2D_ARRAY),
-    IMAGE1D(CL12.CL_MEM_OBJECT_IMAGE1D);
+    IMAGE2D(CL12.CL_MEM_OBJECT_IMAGE2D){
+        @Override
+        public boolean canBeCopiedTo(ImageType imageType){
+
+            return imageType == IMAGE2D || imageType == IMAGE2D_ARRAY;
+        }
+    },
+    IMAGE3D(CL12.CL_MEM_OBJECT_IMAGE3D){
+        @Override
+        public boolean canBeCopiedTo(ImageType imageType){
+
+            return imageType == IMAGE3D;
+        }
+    },
+    IMAGE2D_ARRAY(CL12.CL_MEM_OBJECT_IMAGE2D_ARRAY){
+        @Override
+        public boolean canBeCopiedTo(ImageType imageType){
+
+            return imageType == IMAGE2D || imageType == IMAGE2D_ARRAY;
+        }
+    },
+    IMAGE1D(CL12.CL_MEM_OBJECT_IMAGE1D){
+        @Override
+        public boolean canBeCopiedTo(ImageType imageType){
+
+            return imageType == IMAGE1D;
+        }
+    };
 
     ImageType(int flag) {
         this.flag = flag;
@@ -33,4 +57,6 @@ public enum ImageType {
     public int getFlag() {
         return flag;
     }
+
+    public abstract boolean canBeCopiedTo(ImageType imageType);
 }
