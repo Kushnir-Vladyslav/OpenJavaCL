@@ -48,32 +48,6 @@ public abstract class GlobalBuffer
 
         this.capacity = builder.getCapacity();
 
-        if(builder.getHostMemoryAccess() == HostMemoryAccess.READ_ONLY){
-            if(!(dataProcessor instanceof FromByteBuffer)){
-                String message =  String.format(
-                        "For buffer '%s' with read from host access, must implements \"FromByteBuffer\" interface.",
-                        name);
-                logger.error(message);
-                throw new IllegalArgumentException(message);
-            }
-        } else if(builder.getHostMemoryAccess() == HostMemoryAccess.WRITE_ONLY){
-            if(!(dataProcessor instanceof ToByteBuffer)){
-                String message =  String.format(
-                        "For buffer '%s' with write from host access, must implements \"ToByteBuffer\" interface.",
-                        name);
-                logger.error(message);
-                throw new IllegalArgumentException(message);
-            }
-        } else if(builder.getHostMemoryAccess() == HostMemoryAccess.READ_WRITE){
-            if(!(dataProcessor instanceof ToByteBuffer) || !(dataProcessor instanceof FromByteBuffer)){
-                String message =  String.format(
-                        "For buffer '%s' with read/write from host access, must implements \"FromByteBuffer\" and \"ToByteBuffer\" interfaces.",
-                        name);
-                logger.error(message);
-                throw new IllegalArgumentException(message);
-            }
-        }
-
         if(builder.getStagingBuffer()){
             stagingBuffer = MemoryUtil.memAlloc(capacity * dataProcessor.getSizeStruct());
         }

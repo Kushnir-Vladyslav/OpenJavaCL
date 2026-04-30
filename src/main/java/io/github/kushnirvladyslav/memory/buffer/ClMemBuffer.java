@@ -16,7 +16,11 @@
 
 package io.github.kushnirvladyslav.memory.buffer;
 
+import io.github.kushnirvladyslav.exceptions.BufferInitializationException;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
+import io.github.kushnirvladyslav.memory.data.FromByteBuffer;
+import io.github.kushnirvladyslav.memory.data.ToByteBuffer;
+import io.github.kushnirvladyslav.memory.util.HostMemoryAccess;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL10;
@@ -38,6 +42,26 @@ public abstract class ClMemBuffer
         flags |= builder.getDeviceMemoryAccess().getFlag();
 
         clMem = 0;
+
+        HostMemoryAccess access = builder.getHostMemoryAccess();
+        if (access == HostMemoryAccess.READ_ONLY || access == HostMemoryAccess.READ_WRITE) {
+            if (!(dataProcessor instanceof FromByteBuffer)) {
+                String message = String.format(
+                        "For buffer '%s' with read access, DataProcessor must implement FromByteBuffer.",
+                        name);
+                logger.error(message);
+                throw new BufferInitializationException(message);
+            }
+        }
+        if (access == HostMemoryAccess.WRITE_ONLY || access == HostMemoryAccess.READ_WRITE) {
+            if (!(dataProcessor instanceof ToByteBuffer)) {
+                String message = String.format(
+                        "For buffer '%s' with write access, DataProcessor must implement ToByteBuffer.",
+                        name);
+                logger.error(message);
+                throw new BufferInitializationException(message);
+            }
+        }
     }
 
     protected abstract long createClMem();
