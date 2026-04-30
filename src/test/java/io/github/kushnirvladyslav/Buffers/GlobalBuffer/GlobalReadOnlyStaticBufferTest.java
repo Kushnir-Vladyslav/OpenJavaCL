@@ -16,7 +16,7 @@
 
 package io.github.kushnirvladyslav.Buffers.GlobalBuffer;
 
-import io.github.kushnirvladyslav.memory.buffer.Writable;
+import io.github.kushnirvladyslav.memory.buffer.WritableGlobal;
 import io.github.kushnirvladyslav.memory.buffer.typedBuffer.globalBuffers.GlobalReadOnlyStaticBuffer;
 import io.github.kushnirvladyslav.memory.buffer.typedBuffer.globalBuffers.GlobalReadOnlyStaticBufferBuilder;
 import io.github.kushnirvladyslav.memory.buffer.typedBuffer.globalBuffers.GlobalReadWriteStaticBuffer;
@@ -75,12 +75,12 @@ class GlobalReadOnlyStaticBufferTest extends AbstractGlobalStaticBufferTest {
 
     @Test
     @Order(1100)
-    @DisplayName("writeSync is not available on a read-only buffer (no Writable interface)")
+    @DisplayName("writeSync is not available on a read-only buffer (no WritableGlobal interface)")
     void readOnly_writeSyncNotAvailable() {
         GlobalReadOnlyStaticBuffer buf = createBuffer(4);
-        // The buffer must NOT implement Writable
-        assertFalse(buf instanceof Writable,
-                "GlobalReadOnlyStaticBuffer must not implement Writable");
+        // The buffer must NOT implement WritableGlobal
+        assertFalse(buf instanceof WritableGlobal,
+                "GlobalReadOnlyStaticBuffer must not implement WritableGlobal");
         buf.destroy();
     }
 
@@ -89,7 +89,7 @@ class GlobalReadOnlyStaticBufferTest extends AbstractGlobalStaticBufferTest {
     @DisplayName("writeAsync is not available on a read-only buffer")
     void readOnly_writeAsyncNotAvailable() {
         GlobalReadOnlyStaticBuffer buf = createBuffer(4);
-        assertFalse(buf instanceof Writable);
+        assertFalse(buf instanceof WritableGlobal);
         buf.destroy();
     }
 

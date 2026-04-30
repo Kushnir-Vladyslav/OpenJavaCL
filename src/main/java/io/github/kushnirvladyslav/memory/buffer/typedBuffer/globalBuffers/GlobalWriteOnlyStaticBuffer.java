@@ -16,11 +16,11 @@
 
 package io.github.kushnirvladyslav.memory.buffer.typedBuffer.globalBuffers;
 import io.github.kushnirvladyslav.memory.buffer.GlobalStaticBuffer;
-import io.github.kushnirvladyslav.memory.buffer.Writable;
+import io.github.kushnirvladyslav.memory.buffer.WritableGlobal;
 
 public class GlobalWriteOnlyStaticBuffer
         extends GlobalStaticBuffer
-        implements Writable<GlobalWriteOnlyStaticBuffer> {
+        implements WritableGlobal<GlobalWriteOnlyStaticBuffer> {
 
     public GlobalWriteOnlyStaticBuffer(GlobalWriteOnlyStaticBufferBuilder builder){
         super(builder);

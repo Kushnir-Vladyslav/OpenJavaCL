@@ -21,8 +21,8 @@ import io.github.kushnirvladyslav.exceptions.BufferIndexOutOfBoundsException;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
 import io.github.kushnirvladyslav.memory.buffer.CopyableGlobalBuffer;
 import io.github.kushnirvladyslav.memory.buffer.GlobalBuffer;
-import io.github.kushnirvladyslav.memory.buffer.Writable;
-import io.github.kushnirvladyslav.memory.buffer.Readable;
+import io.github.kushnirvladyslav.memory.buffer.ReadableGlobal;
+import io.github.kushnirvladyslav.memory.buffer.WritableGlobal;
 import org.junit.jupiter.api.*;
 
 
@@ -108,7 +108,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         if (!supportsHostRead()) return;
         GlobalBuffer buf = createBuffer(4);
         assertDoesNotThrow(() -> {
-            Readable<?> r = (Readable<?>) buf;
+            ReadableGlobal<?> r = (ReadableGlobal<?>) buf;
             r.readSync(0, 4);
         });
         buf.destroy();
@@ -121,7 +121,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         if (!supportsHostRead()) return;
         GlobalBuffer buf = createBuffer(4);
         assertThrows(IllegalArgumentException.class, () -> {
-            Readable<?> r = (Readable<?>) buf;
+            ReadableGlobal<?> r = (ReadableGlobal<?>) buf;
             r.readSync(0, 5);          // 5 > capacity 4
         });
         buf.destroy();
@@ -134,7 +134,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         if (!supportsHostRead()) return;
         GlobalBuffer buf = createBuffer(4);
         assertThrows(IllegalArgumentException.class, () -> {
-            Readable<?> r = (Readable<?>) buf;
+            ReadableGlobal<?> r = (ReadableGlobal<?>) buf;
             r.readSync(-1, 1);
         });
         buf.destroy();
@@ -147,7 +147,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         if (!supportsHostRead()) return;
         GlobalBuffer buf = createBuffer(4);
         assertThrows(IllegalArgumentException.class, () -> {
-            Readable<?> r = (Readable<?>) buf;
+            ReadableGlobal<?> r = (ReadableGlobal<?>) buf;
             r.readSync(0, 0);
         });
         buf.destroy();
@@ -163,7 +163,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         int[] bigArray = new int[10]; // 10 > capacity 4
 
         assertThrows(Exception.class, () -> {
-            Writable<?> w = (Writable<?>) buf;
+            WritableGlobal<?> w = (WritableGlobal<?>) buf;
             w.writeSync(bigArray);
         });
         assertEquals(capBefore, buf.getCapacity(),
@@ -181,7 +181,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         int[] bigArray = new int[10];
 
         assertThrows(Exception.class, () -> {
-            Writable<?> w = (Writable<?>) buf;
+            WritableGlobal<?> w = (WritableGlobal<?>) buf;
             w.writeAsync(bigArray);
         });
         assertEquals(capBefore, buf.getCapacity());
@@ -196,7 +196,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         GlobalBuffer buf = createBuffer(4);
         int[] arr = {1};
         assertThrows(IllegalArgumentException.class, () -> {
-            Writable<?> w = (Writable<?>) buf;
+            WritableGlobal<?> w = (WritableGlobal<?>) buf;
             w.writeSync(-1, arr);
         });
         buf.destroy();
@@ -209,7 +209,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         if (!supportsHostWrite()) return;
         GlobalBuffer buf = createBuffer(4);
         assertThrows(Exception.class, () -> {
-            Writable<?> w = (Writable<?>) buf;
+            WritableGlobal<?> w = (WritableGlobal<?>) buf;
             w.writeAsync(null);
         });
         buf.destroy();
@@ -222,7 +222,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         if (!supportsHostWrite()) return;
         GlobalBuffer buf = createBuffer(4);
         assertThrows(Exception.class, () -> {
-            Writable<?> w = (Writable<?>) buf;
+            WritableGlobal<?> w = (WritableGlobal<?>) buf;
             w.writeSync(null);
         });
         buf.destroy();
@@ -269,7 +269,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         buf.destroy();
         int[] arr = {1};
         assertThrows(BufferDestructionException.class, () -> {
-            Writable<?> w = (Writable<?>) buf;
+            WritableGlobal<?> w = (WritableGlobal<?>) buf;
             w.writeSync(arr);
         });
     }
@@ -283,7 +283,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         buf.destroy();
         int[] arr = {1};
         assertThrows(BufferDestructionException.class, () -> {
-            Writable<?> w = (Writable<?>) buf;
+            WritableGlobal<?> w = (WritableGlobal<?>) buf;
             w.writeAsync(arr);
         });
     }
@@ -296,7 +296,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         GlobalBuffer buf = createBuffer(4);
         buf.destroy();
         assertThrows(BufferDestructionException.class, () -> {
-            Readable<?> r = (Readable<?>) buf;
+            ReadableGlobal<?> r = (ReadableGlobal<?>) buf;
             r.readSync(1);
         });
     }
@@ -310,7 +310,7 @@ public abstract class AbstractGlobalStaticBufferTest extends AbstractGlobalBuffe
         buf.destroy();
         int[] target = new int[1];
         assertThrows(BufferDestructionException.class, () -> {
-            Readable<?> r = (Readable<?>) buf;
+            ReadableGlobal<?> r = (ReadableGlobal<?>) buf;
             r.readAsync(target);
         });
     }

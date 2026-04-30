@@ -23,14 +23,14 @@ public enum ImageType {
         @Override
         public boolean canBeCopiedTo(ImageType imageType){
 
-            return imageType == IMAGE2D || imageType == IMAGE2D_ARRAY;
+            return imageType == IMAGE2D || imageType == IMAGE2D_ARRAY || imageType == IMAGE3D;
         }
     },
     IMAGE3D(CL12.CL_MEM_OBJECT_IMAGE3D){
         @Override
         public boolean canBeCopiedTo(ImageType imageType){
 
-            return imageType == IMAGE3D;
+            return imageType == IMAGE3D || imageType == IMAGE2D;
         }
     },
     IMAGE2D_ARRAY(CL12.CL_MEM_OBJECT_IMAGE2D_ARRAY){

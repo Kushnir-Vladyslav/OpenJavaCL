@@ -100,11 +100,11 @@ class GlobalWriteOnlyStaticBufferTest extends AbstractGlobalStaticBufferTest {
 
     @Test
     @Order(1100)
-    @DisplayName("readSync is not available on a write-only buffer (no Readable interface)")
+    @DisplayName("readSync is not available on a write-only buffer (no ReadableGlobal interface)")
     void writeOnly_readSyncNotAvailable() {
         GlobalWriteOnlyStaticBuffer buf = createBuffer(4);
         assertFalse(buf instanceof Readable,
-                "GlobalWriteOnlyStaticBuffer must not implement Readable");
+                "GlobalWriteOnlyStaticBuffer must not implement ReadableGlobal");
         buf.destroy();
     }
 

@@ -53,7 +53,7 @@ public abstract class CopyableImageBuffer
      */
     protected abstract boolean intersectionCheck(ImageRegion region, ImagePoint pointer);
 
-    public static ClEvent copy(ImageRegion srcRegion, ImagePoint dstPoint, ClEventList events){
+    protected static ClEvent copy(ImageRegion srcRegion, ImagePoint dstPoint, ClEventList events){
         if (srcRegion == null){
             String message = "Source copy data object cannot be null.";
             logger.error(message);
@@ -67,7 +67,7 @@ public abstract class CopyableImageBuffer
         }
 
         if(dstPoint == srcRegion){
-            String message = "Attempting to write to a read location.";
+            String message = "Source and destination are the same object — returning no-op event.";
             logger.warn(message);
             ClCustomEvent event = new ClCustomEvent(srcRegion.buffer.context);
             event.setComplete();
@@ -184,11 +184,51 @@ public abstract class CopyableImageBuffer
 
     }
 
-    public static ClEvent copy(ImageRegion srcRegion, ImagePoint dstPoint){
-        return copy(srcRegion, dstPoint, null);
+    public ClEvent copyTo(ImageRegion srcRegion, ImagePoint dstPoint, ClEventList events){
+        if (srcRegion.buffer != this){
+            throw new IllegalArgumentException(String.format(
+                    "srcRegion belongs to '%s', but copyTo called on '%s'.",
+                    srcRegion.buffer.getName(), getName()));
+        }
+
+        return copy(srcRegion, dstPoint, events);
     }
 
-    public static ClEvent copyFromGlobalBuffer(GlobalBuffer srcGlobal, ImageRegion dstRegion, int offset, ClEventList events){
+    public ClEvent copyTo(ImageRegion srcRegion, ImagePoint dstPoint){
+        return copyTo(srcRegion, dstPoint, null);
+    }
+
+    public ClEvent copyFrom(ImageRegion srcRegion, ImagePoint dstPoint, ClEventList events){
+        if (dstPoint.buffer != this){
+            throw new IllegalArgumentException(String.format(
+                    "dstPoint belongs to '%s', but copyFrom called on '%s'.",
+                    dstPoint.buffer.getName(), getName()));
+        }
+
+        return copy(srcRegion, dstPoint, events);
+    }
+
+    public ClEvent copyFrom(ImageRegion srcRegion, ImagePoint dstPoint){
+        return copyFrom(srcRegion, dstPoint, null);
+    }
+
+    public void copyToSync(ImageRegion srcRegion, ImagePoint dstPoint, ClEventList events){
+        copyTo(srcRegion, dstPoint, events).waitForComplete();
+    }
+
+    public void copyToSync(ImageRegion srcRegion, ImagePoint dstPoint){
+        copyToSync(srcRegion, dstPoint, null);
+    }
+
+    public void copyFromSync(ImageRegion srcRegion, ImagePoint dstPoint, ClEventList events){
+        copyFrom(srcRegion, dstPoint, events).waitForComplete();
+    }
+
+    public void copyFromSync(ImageRegion srcRegion, ImagePoint dstPoint){
+        copyFrom(srcRegion, dstPoint, null).waitForComplete();
+    }
+
+    protected static ClEvent copyFromGlobal(GlobalBuffer srcGlobal, ImageRegion dstRegion, int offset, ClEventList events){
         if (dstRegion == null){
             String message = "Destination copy data object cannot be null.";
             logger.error(message);
@@ -222,7 +262,7 @@ public abstract class CopyableImageBuffer
         }
 
         if ((dstImage.flags & DeviceMemoryAccess.READ_ONLY.getFlag()) != 0) {
-            String message = String.format("Buffer '%s' cannot be read by device for copying.",
+            String message = String.format("Buffer '%s' cannot be written by device for copying.",
                     dstImage.getName());
             logger.error(message);
             throw new BufferOperationException(message);
@@ -276,19 +316,45 @@ public abstract class CopyableImageBuffer
         }
     }
 
-    public static ClEvent copyFromGlobalBuffer(GlobalBuffer srcGlobal, ImageRegion dstRegion, int offset){
+    public ClEvent copyFromGlobalBuffer(GlobalBuffer srcGlobal, ImageRegion dstRegion, int offset, ClEventList events){
+        if (dstRegion.buffer != this){
+            throw new IllegalArgumentException(String.format(
+                    "dstPoint belongs to '%s', but copyFrom called on '%s'.",
+                    dstRegion.buffer.getName(), getName()));
+        }
+
+        return copyFromGlobal(srcGlobal, dstRegion, offset, events);
+    }
+
+    public ClEvent copyFromGlobalBuffer(GlobalBuffer srcGlobal, ImageRegion dstRegion, int offset){
         return copyFromGlobalBuffer(srcGlobal, dstRegion, offset, null);
     }
 
-    public static ClEvent copyFromGlobalBuffer(GlobalBuffer srcGlobal, ImageRegion dstRegion, ClEventList events){
+    public  ClEvent copyFromGlobalBuffer(GlobalBuffer srcGlobal, ImageRegion dstRegion, ClEventList events){
         return copyFromGlobalBuffer(srcGlobal, dstRegion, 0, events);
     }
 
-    public static ClEvent copyFromGlobalBuffer(GlobalBuffer srcGlobal, ImageRegion dstRegion){
+    public ClEvent copyFromGlobalBuffer(GlobalBuffer srcGlobal, ImageRegion dstRegion){
         return copyFromGlobalBuffer(srcGlobal, dstRegion, 0, null);
     }
 
-    public static ClEvent copyToGlobalBuffer(ImageRegion srcRegion, GlobalBuffer dstGlobal, int offset, ClEventList events){
+    public void copyFromGlobalBufferSync(GlobalBuffer srcGlobal, ImageRegion dstRegion, int offset, ClEventList events){
+        copyFromGlobalBuffer(srcGlobal, dstRegion, offset, events).waitForComplete();
+    }
+
+    public void copyFromGlobalBufferSync(GlobalBuffer srcGlobal, ImageRegion dstRegion, int offset){
+        copyFromGlobalBufferSync(srcGlobal, dstRegion, offset, null);
+    }
+
+    public void copyFromGlobalBufferSync(GlobalBuffer srcGlobal, ImageRegion dstRegion, ClEventList events){
+        copyFromGlobalBufferSync(srcGlobal, dstRegion, 0, events);
+    }
+
+    public void copyFromGlobalBufferSync(GlobalBuffer srcGlobal, ImageRegion dstRegion){
+        copyFromGlobalBufferSync(srcGlobal, dstRegion, 0, null);
+    }
+
+    protected static ClEvent copyToGlobal(ImageRegion srcRegion, GlobalBuffer dstGlobal, int offset, ClEventList events){
         if (srcRegion == null){
             String message = "Source copy data object cannot be null.";
             logger.error(message);
@@ -381,6 +447,44 @@ public abstract class CopyableImageBuffer
         }
     }
 
+    public ClEvent copyToGlobalBuffer(ImageRegion srcRegion, GlobalBuffer dstGlobal, int offset, ClEventList events){
+        if (srcRegion.buffer != this){
+            throw new IllegalArgumentException(String.format(
+                    "srcRegion belongs to '%s', but copyTo called on '%s'.",
+                    srcRegion.buffer.getName(), getName()));
+        }
+
+        return copyToGlobal(srcRegion, dstGlobal, offset, events);
+    }
+
+    public ClEvent copyToGlobalBuffer(ImageRegion srcRegion, GlobalBuffer dstGlobal, int offset){
+        return copyToGlobalBuffer(srcRegion, dstGlobal, offset, null);
+    }
+
+    public ClEvent copyToGlobalBuffer(ImageRegion srcRegion, GlobalBuffer dstGlobal, ClEventList events){
+        return copyToGlobalBuffer(srcRegion, dstGlobal, 0, events);
+    }
+
+    public ClEvent copyToGlobalBuffer(ImageRegion srcRegion, GlobalBuffer dstGlobal){
+        return copyToGlobalBuffer(srcRegion, dstGlobal, 0, null);
+    }
+
+    public void copyToGlobalBufferSync(ImageRegion srcRegion, GlobalBuffer dstGlobal, int offset, ClEventList events){
+        copyToGlobalBuffer(srcRegion, dstGlobal, offset, events).waitForComplete();
+    }
+
+    public void copyToGlobalBufferSync(ImageRegion srcRegion, GlobalBuffer dstGlobal, int offset){
+        copyToGlobalBufferSync(srcRegion, dstGlobal, offset, null);
+    }
+
+    public void copyToGlobalBufferSync(ImageRegion srcRegion, GlobalBuffer dstGlobal, ClEventList events){
+        copyToGlobalBufferSync(srcRegion, dstGlobal, 0, events);
+    }
+
+    public void copyToGlobalBufferSync(ImageRegion srcRegion, GlobalBuffer dstGlobal){
+        copyToGlobalBufferSync(srcRegion, dstGlobal, 0, null);
+    }
+
     protected abstract static class ImagePoint {
         protected CopyableImageBuffer buffer;
 
@@ -392,6 +496,18 @@ public abstract class CopyableImageBuffer
 
         protected PointerBuffer getOrigin(MemoryStack stack){
             return stack.mallocPointer(3).put(origin).rewind();
+        }
+
+        protected int getOriginX(){
+            return (int) origin[0];
+        }
+
+        protected int getOriginY(){
+            return (int) origin[1];
+        }
+
+        protected int getOriginZ(){
+            return (int) origin[2];
         }
     }
 
@@ -408,18 +524,18 @@ public abstract class CopyableImageBuffer
             return stack.mallocPointer(3).put(region).rewind();
         }
 
-        protected abstract int getDataSize();
-    }
+        protected abstract long getDataSize();
 
-    public static ClEvent copyToGlobalBuffer(ImageRegion srcRegion, GlobalBuffer dstGlobal, int offset){
-        return copyToGlobalBuffer(srcRegion, dstGlobal, offset, null);
-    }
+        protected int getRegionX(){
+            return (int) region[0];
+        }
 
-    public static ClEvent copyToGlobalBuffer(ImageRegion srcRegion, GlobalBuffer dstGlobal, ClEventList events){
-        return copyToGlobalBuffer(srcRegion, dstGlobal, 0, events);
-    }
+        protected int getRegionY(){
+            return (int) region[1];
+        }
 
-    public static ClEvent copyToGlobalBuffer(ImageRegion srcRegion, GlobalBuffer dstGlobal){
-        return copyToGlobalBuffer(srcRegion, dstGlobal, 0, null);
+        protected int getRegionZ(){
+            return (int) region[2];
+        }
     }
 }

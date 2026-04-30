@@ -16,7 +16,7 @@
 
 package io.github.kushnirvladyslav.Buffers.GlobalBuffer;
 
-import io.github.kushnirvladyslav.memory.buffer.Writable;
+import io.github.kushnirvladyslav.memory.buffer.WritableGlobal;
 import io.github.kushnirvladyslav.memory.buffer.typedBuffer.globalBuffers.*;
 import io.github.kushnirvladyslav.memory.data.typical.IntDataProcessor;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
@@ -89,21 +89,21 @@ class GlobalNoAccessStaticBufferTest extends AbstractGlobalStaticBufferTest {
 
     @Test
     @Order(1100)
-    @DisplayName("Readable interface is absent on a no-access buffer")
+    @DisplayName("ReadableGlobal interface is absent on a no-access buffer")
     void noAccess_readableNotAvailable() {
         GlobalNoAccessStaticBuffer buf = createBuffer(4);
         assertFalse(buf instanceof Readable,
-                "GlobalNoAccessStaticBuffer must not implement Readable");
+                "GlobalNoAccessStaticBuffer must not implement ReadableGlobal");
         buf.destroy();
     }
 
     @Test
     @Order(1101)
-    @DisplayName("Writable interface is absent on a no-access buffer")
+    @DisplayName("WritableGlobal interface is absent on a no-access buffer")
     void noAccess_writableNotAvailable() {
         GlobalNoAccessStaticBuffer buf = createBuffer(4);
-        assertFalse(buf instanceof Writable,
-                "GlobalNoAccessStaticBuffer must not implement Writable");
+        assertFalse(buf instanceof WritableGlobal,
+                "GlobalNoAccessStaticBuffer must not implement WritableGlobal");
         buf.destroy();
     }
 

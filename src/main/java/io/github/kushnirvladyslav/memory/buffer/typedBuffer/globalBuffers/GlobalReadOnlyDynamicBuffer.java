@@ -16,11 +16,11 @@
 
 package io.github.kushnirvladyslav.memory.buffer.typedBuffer.globalBuffers;
 import io.github.kushnirvladyslav.memory.buffer.GlobalDynamicalBuffer;
-import io.github.kushnirvladyslav.memory.buffer.Readable;
+import io.github.kushnirvladyslav.memory.buffer.ReadableGlobal;
 
 public class GlobalReadOnlyDynamicBuffer
         extends GlobalDynamicalBuffer
-        implements Readable<GlobalReadOnlyDynamicBuffer> {
+        implements ReadableGlobal<GlobalReadOnlyDynamicBuffer> {
 
     public GlobalReadOnlyDynamicBuffer(GlobalReadOnlyDynamicBufferBuilder builder){
         super(builder);

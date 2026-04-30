@@ -37,66 +37,6 @@ public abstract class CopyableGlobalBuffer
         super(builder);
     }
 
-    public ClEvent copyFrom (GlobalBuffer src){
-        return copyFrom(src, null);
-    }
-
-    public ClEvent copyFrom (GlobalBuffer src, ClEventList events){
-        if (src == null || src.isClosed()) {
-            String message = "Buffer, source not initialized or already closed.";
-            logger.error(message);
-            throw new BufferOperationException(message);
-        }
-
-        return copyFrom(src, src.capacity, events);
-    }
-
-    public ClEvent copyFrom (GlobalBuffer src, int size){
-        return copyFrom(src, 0, 0, size, null);
-    }
-
-    public ClEvent copyFrom (GlobalBuffer src, int size, ClEventList events){
-        return copyFrom(src, 0, 0, size, events);
-    }
-
-    public ClEvent copyFrom (GlobalBuffer src, int srcOffset, int dstOffset, int size){
-        return copyFromBufferToBuffer(src, this, srcOffset, dstOffset, size, null);
-    }
-
-    public ClEvent copyFrom (GlobalBuffer src, int srcOffset, int dstOffset, int size, ClEventList events){
-        return copyFromBufferToBuffer(src, this, srcOffset, dstOffset, size, events);
-    }
-
-    public ClEvent copyTo (GlobalBuffer dst){
-        return copyTo(dst, null);
-    }
-
-    public ClEvent copyTo (GlobalBuffer dst, ClEventList events){
-        if (this.isClosed()) {
-            String message = "Buffer, source not initialized or already closed.";
-            logger.error(message);
-            throw new BufferOperationException(message);
-        }
-
-        return copyTo(dst, this.capacity, events);
-    }
-
-    public ClEvent copyTo (GlobalBuffer dst, int size){
-        return copyTo(dst, 0, 0, size, null);
-    }
-
-    public ClEvent copyTo (GlobalBuffer dst, int size, ClEventList events){
-        return copyTo(dst, 0, 0, size, events);
-    }
-
-    public ClEvent copyTo (GlobalBuffer dst, int srcOffset, int dstOffset, int size){
-        return copyFromBufferToBuffer(this, dst, srcOffset, dstOffset, size, null);
-    }
-
-    public ClEvent copyTo (GlobalBuffer dst, int srcOffset, int dstOffset, int size, ClEventList events){
-        return copyFromBufferToBuffer(this, dst, srcOffset, dstOffset, size, events);
-    }
-
     protected ClEvent copyFromBufferToBuffer(
             GlobalBuffer src, GlobalBuffer dst,
             int srcOffset, int dstOffset,
@@ -202,8 +142,133 @@ public abstract class CopyableGlobalBuffer
         }
     }
 
+
+    public ClEvent copyFrom (GlobalBuffer src, int srcOffset, int dstOffset, int size, ClEventList events){
+        return copyFromBufferToBuffer(src, this, srcOffset, dstOffset, size, events);
+    }
+
+    public ClEvent copyFrom (GlobalBuffer src, int srcOffset, int dstOffset, int size){
+        return copyFromBufferToBuffer(src, this, srcOffset, dstOffset, size, null);
+    }
+
+    public ClEvent copyFrom (GlobalBuffer src, int size, ClEventList events){
+        return copyFrom(src, 0, 0, size, events);
+    }
+
+    public ClEvent copyFrom (GlobalBuffer src, int size){
+        return copyFrom(src, 0, 0, size, null);
+    }
+
+    public ClEvent copyFrom (GlobalBuffer src, ClEventList events){
+        if (src == null || src.isClosed()) {
+            String message = "Buffer, source not initialized or already closed.";
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        return copyFrom(src, src.capacity, events);
+    }
+
+    public ClEvent copyFrom (GlobalBuffer src){
+        return copyFrom(src, null);
+    }
+
+
+    public void copyFromSync (GlobalBuffer src, int srcOffset, int dstOffset, int size, ClEventList events){
+        copyFrom(src,  srcOffset, dstOffset, size, events).waitForComplete();
+    }
+
+    public void copyFromSync  (GlobalBuffer src, int srcOffset, int dstOffset, int size){
+        copyFromSync(src, srcOffset, dstOffset, size, null);
+    }
+
+    public void copyFromSync  (GlobalBuffer src, int size, ClEventList events){
+        copyFromSync(src, 0, 0, size, events);
+    }
+
+    public void copyFromSync  (GlobalBuffer src, int size){
+        copyFromSync(src, 0, 0, size, null);
+    }
+
+    public void copyFromSync  (GlobalBuffer src, ClEventList events){
+        if (src == null || src.isClosed()) {
+            String message = "Buffer, source not initialized or already closed.";
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        copyFromSync(src, 0, 0, src.capacity, events);
+    }
+
+    public void copyFromSync  (GlobalBuffer src){
+        copyFromSync(src, null);
+    }
+
+
+    public ClEvent copyTo (GlobalBuffer dst, int srcOffset, int dstOffset, int size, ClEventList events){
+        return copyFromBufferToBuffer(this, dst, srcOffset, dstOffset, size, events);
+    }
+
+    public ClEvent copyTo (GlobalBuffer dst, int srcOffset, int dstOffset, int size){
+        return copyFromBufferToBuffer(this, dst, srcOffset, dstOffset, size, null);
+    }
+
+    public ClEvent copyTo (GlobalBuffer dst, int size, ClEventList events){
+        return copyTo(dst, 0, 0, size, events);
+    }
+
+    public ClEvent copyTo (GlobalBuffer dst, int size){
+        return copyTo(dst, 0, 0, size, null);
+    }
+
+    public ClEvent copyTo (GlobalBuffer dst, ClEventList events){
+        if (this.isClosed()) {
+            String message = "Buffer, source not initialized or already closed.";
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        return copyTo(dst, this.capacity, events);
+    }
+
+    public ClEvent copyTo (GlobalBuffer dst){
+        return copyTo(dst, null);
+    }
+
+
+    public void copyToSync (GlobalBuffer dst, int srcOffset, int dstOffset, int size, ClEventList events){
+        copyTo(dst, srcOffset, dstOffset, size, events).waitForComplete();
+    }
+
+    public void copyToSync (GlobalBuffer dst, int srcOffset, int dstOffset, int size){
+        copyToSync(dst, srcOffset, dstOffset, size, null);
+    }
+
+    public void copyToSync (GlobalBuffer dst, int size, ClEventList events){
+        copyToSync(dst, 0, 0, size, events);
+    }
+
+    public void copyToSync (GlobalBuffer dst, int size){
+        copyToSync(dst, 0, 0, size, null);
+    }
+
+    public void copyToSync (GlobalBuffer dst, ClEventList events){
+        if (this.isClosed()) {
+            String message = "Buffer, source not initialized or already closed.";
+            logger.error(message);
+            throw new BufferOperationException(message);
+        }
+
+        copyToSync(dst, 0, 0, this.capacity, events);
+    }
+
+    public void copyToSync (GlobalBuffer dst){
+        copyToSync(dst, null);
+    }
+
+
     public ClEvent copyToImage(CopyableImageBuffer.ImageRegion dstRegion, int offset, ClEventList events){
-        return CopyableImageBuffer.copyFromGlobalBuffer(this, dstRegion, offset, events);
+        return CopyableImageBuffer.copyFromGlobal(this, dstRegion, offset, events);
     }
 
     public ClEvent copyToImage(CopyableImageBuffer.ImageRegion dstRegion, int offset){
@@ -219,8 +284,25 @@ public abstract class CopyableGlobalBuffer
     }
 
 
+    public void copyToImageSync(CopyableImageBuffer.ImageRegion dstRegion, int offset, ClEventList events){
+        copyToImage(dstRegion, offset, events).waitForComplete();
+    }
+
+    public void copyToImageSync(CopyableImageBuffer.ImageRegion dstRegion, int offset){
+        copyToImageSync(dstRegion, offset, null);
+    }
+
+    public void copyToImageSync(CopyableImageBuffer.ImageRegion dstRegion, ClEventList events){
+        copyToImageSync(dstRegion, 0, events);
+    }
+
+    public void copyToImageSync(CopyableImageBuffer.ImageRegion dstRegion){
+        copyToImageSync(dstRegion, 0, null);
+    }
+
+
     public ClEvent copyFromImage(CopyableImageBuffer.ImageRegion srcRegion, int offset, ClEventList events){
-        return CopyableImageBuffer.copyToGlobalBuffer(srcRegion, this, offset, events);
+        return CopyableImageBuffer.copyToGlobal(srcRegion, this, offset, events);
     }
 
     public ClEvent copyFromImage(CopyableImageBuffer.ImageRegion srcRegion, int offset){
@@ -233,5 +315,22 @@ public abstract class CopyableGlobalBuffer
 
     public ClEvent copyFromImage(CopyableImageBuffer.ImageRegion srcRegion){
         return copyFromImage(srcRegion, 0, null);
+    }
+
+
+    public void copyFromImageSync(CopyableImageBuffer.ImageRegion srcRegion, int offset, ClEventList events){
+        copyFromImage(srcRegion, offset, events).waitForComplete();
+    }
+
+    public void copyFromImageSync(CopyableImageBuffer.ImageRegion srcRegion, int offset){
+        copyFromImageSync(srcRegion, offset, null);
+    }
+
+    public void copyFromImageSync(CopyableImageBuffer.ImageRegion srcRegion, ClEventList events){
+        copyFromImageSync(srcRegion, 0, events);
+    }
+
+    public void copyFromImageSync(CopyableImageBuffer.ImageRegion srcRegion){
+        copyFromImageSync(srcRegion, 0, null);
     }
 }

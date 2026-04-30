@@ -33,9 +33,9 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public interface Writable
-        <T extends CopyableGlobalBuffer & Writable<T>>{
-    Logger logger = LoggerFactory.getLogger(Writable.class);
+public interface WritableGlobal
+        <T extends CopyableGlobalBuffer & WritableGlobal<T>>{
+    Logger logger = LoggerFactory.getLogger(WritableGlobal.class);
 
     @SuppressWarnings("unchecked")
     default ClEvent writeAsync (int offset, ClEventList events, Object array){

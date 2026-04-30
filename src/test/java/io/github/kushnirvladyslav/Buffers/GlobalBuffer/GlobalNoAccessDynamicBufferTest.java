@@ -17,11 +17,9 @@
 package io.github.kushnirvladyslav.Buffers.GlobalBuffer;
 
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
-import io.github.kushnirvladyslav.memory.buffer.Writable;
+import io.github.kushnirvladyslav.memory.buffer.WritableGlobal;
 import io.github.kushnirvladyslav.memory.buffer.typedBuffer.globalBuffers.*;
 import io.github.kushnirvladyslav.memory.data.typical.IntDataProcessor;
-import io.github.kushnirvladyslav.util.clEvent.ClEvent;
-import io.github.kushnirvladyslav.util.clEvent.ClEventList;
 import org.junit.jupiter.api.*;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
@@ -102,20 +100,20 @@ class GlobalNoAccessDynamicBufferTest extends AbstractGlobalDynamicalBufferTest 
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test @Order(1300)
-    @DisplayName("Readable interface is absent on a no-access dynamic buffer")
+    @DisplayName("ReadableGlobal interface is absent on a no-access dynamic buffer")
     void noAccess_readableNotAvailable() {
         GlobalNoAccessDynamicBuffer buf = naDyn(10);
         assertFalse(buf instanceof Readable,
-                "GlobalNoAccessDynamicBuffer must not implement Readable");
+                "GlobalNoAccessDynamicBuffer must not implement ReadableGlobal");
         buf.destroy();
     }
 
     @Test @Order(1301)
-    @DisplayName("Writable interface is absent on a no-access dynamic buffer")
+    @DisplayName("WritableGlobal interface is absent on a no-access dynamic buffer")
     void noAccess_writableNotAvailable() {
         GlobalNoAccessDynamicBuffer buf = naDyn(10);
-        assertFalse(buf instanceof Writable,
-                "GlobalNoAccessDynamicBuffer must not implement Writable");
+        assertFalse(buf instanceof WritableGlobal,
+                "GlobalNoAccessDynamicBuffer must not implement WritableGlobal");
         buf.destroy();
     }
 

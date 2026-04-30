@@ -16,30 +16,35 @@
 
 package io.github.kushnirvladyslav.memory.util;
 
-import io.github.kushnirvladyslav.ClContext;
 import org.lwjgl.opencl.CL12;
+import org.lwjgl.opencl.CL30;
+import org.lwjgl.opencl.KHRGLDepthImages;
 
 public enum ImageChannelOrder {
-    RED_ONLY(CL12.CL_R),
-    ALPHA_ONLY(CL12.CL_A),
-    RED_GREEN(CL12.CL_RG),
-    RED_ALPHA(CL12.CL_RA),
-    RGBA(CL12.CL_RGBA),
-    BGRA(CL12.CL_BGRA),
-    ARGB(CL12.CL_ARGB),
-    INTENSITY(CL12.CL_INTENSITY),
-    LUMINANCE(CL12.CL_LUMINANCE),
-    DEPTH(CL12.CL_IMAGE_DEPTH);
+    RED_ONLY(CL12.CL_R, 1),
+    ALPHA_ONLY(CL12.CL_A, 1),
+    RED_GREEN(CL12.CL_RG, 2),
+    RED_ALPHA(CL12.CL_RA, 2),
+    RGBA(CL12.CL_RGBA, 4),
+    BGRA(CL12.CL_BGRA, 4),
+    ARGB(CL12.CL_ARGB, 4),
+    INTENSITY(CL12.CL_INTENSITY, 1),
+    LUMINANCE(CL12.CL_LUMINANCE, 1),
+    DEPTH(KHRGLDepthImages.CL_DEPTH_STENCIL, 1);
 
-    ImageChannelOrder(int flag) {
-
-
+    ImageChannelOrder(int flag, int numOfChannel) {
         this.flag = flag;
+        this.numOfChannel = numOfChannel;
     }
 
     private final int flag;
+    private final int numOfChannel;
 
     public int getFlag() {
         return flag;
+    }
+
+    public int getNumOfChannel(){
+        return numOfChannel;
     }
 }

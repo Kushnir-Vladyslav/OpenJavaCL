@@ -33,8 +33,8 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public interface Readable<T extends CopyableGlobalBuffer & Readable<T>> {
-    Logger logger = LoggerFactory.getLogger(Readable.class);
+public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<T>> {
+    Logger logger = LoggerFactory.getLogger(ReadableGlobal.class);
 
 
     @SuppressWarnings("unchecked")

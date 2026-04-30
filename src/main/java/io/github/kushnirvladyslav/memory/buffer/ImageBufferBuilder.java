@@ -42,6 +42,7 @@ public abstract class ImageBufferBuilder
     protected int imageSlicePitch = 0;
     protected int numMipLevels = 0;
     protected int numSamples = 0;
+    protected long memObject = 0;
 
     public T withImageChannelOrder(ImageChannelOrder imageChannelOrder){
         if (imageChannelOrder == null) {
@@ -123,6 +124,12 @@ public abstract class ImageBufferBuilder
 
     protected T hiddenWithNumSamples(int numSamples){
         this.numSamples = numSamples;
+
+        return (T) this;
+    }
+
+    protected T hiddenWithMemObject(long memObject){
+        this.memObject = memObject;
 
         return (T) this;
     }

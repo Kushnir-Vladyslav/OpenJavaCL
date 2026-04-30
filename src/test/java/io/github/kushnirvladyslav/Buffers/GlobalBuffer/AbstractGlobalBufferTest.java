@@ -25,11 +25,10 @@ import io.github.kushnirvladyslav.exceptions.BufferIndexOutOfBoundsException;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
 import io.github.kushnirvladyslav.memory.buffer.CopyableGlobalBuffer;
 import io.github.kushnirvladyslav.memory.buffer.GlobalBuffer;
-import io.github.kushnirvladyslav.memory.buffer.Writable;
+import io.github.kushnirvladyslav.memory.buffer.WritableGlobal;
 import io.github.kushnirvladyslav.util.clEvent.ClEvent;
 import org.junit.jupiter.api.*;
 import org.lwjgl.PointerBuffer;
-import org.lwjgl.opencl.CL10;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.system.MemoryUtil;
 
@@ -92,7 +91,7 @@ public abstract class AbstractGlobalBufferTest {
 
     /**
      * Returns {@code true} if the buffer type under test supports host writes
-     * (i.e. implements {@link Writable}).
+     * (i.e. implements {@link WritableGlobal}).
      */
     protected abstract boolean supportsHostWrite();
 

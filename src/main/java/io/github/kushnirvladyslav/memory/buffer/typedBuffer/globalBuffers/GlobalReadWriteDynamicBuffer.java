@@ -17,13 +17,13 @@
 package io.github.kushnirvladyslav.memory.buffer.typedBuffer.globalBuffers;
 
 import io.github.kushnirvladyslav.memory.buffer.GlobalDynamicalBuffer;
-import io.github.kushnirvladyslav.memory.buffer.Readable;
-import io.github.kushnirvladyslav.memory.buffer.Writable;
+import io.github.kushnirvladyslav.memory.buffer.ReadableGlobal;
+import io.github.kushnirvladyslav.memory.buffer.WritableGlobal;
 
 public class GlobalReadWriteDynamicBuffer
         extends GlobalDynamicalBuffer
-        implements Writable<GlobalReadWriteDynamicBuffer>,
-        Readable<GlobalReadWriteDynamicBuffer> {
+        implements WritableGlobal<GlobalReadWriteDynamicBuffer>,
+        ReadableGlobal<GlobalReadWriteDynamicBuffer> {
 
     public GlobalReadWriteDynamicBuffer(GlobalReadWriteDynamicBufferBuilder builder){
         super(builder);

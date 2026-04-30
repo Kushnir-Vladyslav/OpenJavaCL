@@ -19,27 +19,33 @@ package io.github.kushnirvladyslav.memory.util;
 import org.lwjgl.opencl.CL12;
 
 public enum ImageChannelDataType {
-    UNORM_INT8(CL12.CL_UNORM_INT8),
-    UNORM_INT16(CL12.CL_UNORM_INT16),
-    SNORM_INT8(CL12.CL_SNORM_INT8),
-    SNORM_INT16(CL12.CL_SNORM_INT16),
-    UNSIGNED_INT8(CL12.CL_UNSIGNED_INT8),
-    UNSIGNED_INT16(CL12.CL_UNSIGNED_INT16),
-    UNSIGNED_INT32(CL12.CL_UNSIGNED_INT32),
-    SIGNED_INT8(CL12.CL_SIGNED_INT8),
-    SIGNED_INT16(CL12.CL_SIGNED_INT16),
-    SIGNED_INT32(CL12.CL_SIGNED_INT32),
-    HALF_FLOAT(CL12.CL_HALF_FLOAT),
-    FLOAT(CL12.CL_FLOAT);
+    UNORM_INT8(CL12.CL_UNORM_INT8, 1),
+    UNORM_INT16(CL12.CL_UNORM_INT16, 2),
+    SNORM_INT8(CL12.CL_SNORM_INT8, 1),
+    SNORM_INT16(CL12.CL_SNORM_INT16, 2),
+    UNSIGNED_INT8(CL12.CL_UNSIGNED_INT8, 1),
+    UNSIGNED_INT16(CL12.CL_UNSIGNED_INT16, 2),
+    UNSIGNED_INT32(CL12.CL_UNSIGNED_INT32, 4),
+    SIGNED_INT8(CL12.CL_SIGNED_INT8, 1),
+    SIGNED_INT16(CL12.CL_SIGNED_INT16, 2),
+    SIGNED_INT32(CL12.CL_SIGNED_INT32, 4),
+    HALF_FLOAT(CL12.CL_HALF_FLOAT, 2),
+    FLOAT(CL12.CL_FLOAT, 4);
 
-    ImageChannelDataType(int flag) {
+    ImageChannelDataType(int flag, int byteSize) {
         this.flag = flag;
+        this.byteSize = byteSize;
     }
 
     private final int flag;
+    private final int byteSize;
 
     public int getFlag() {
         return flag;
+    }
+
+    public int getByteSize(){
+        return byteSize;
     }
 }
 

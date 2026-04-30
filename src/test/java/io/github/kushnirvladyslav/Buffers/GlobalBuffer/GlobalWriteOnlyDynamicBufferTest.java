@@ -16,7 +16,6 @@
 
 package io.github.kushnirvladyslav.Buffers.GlobalBuffer;
 
-import io.github.kushnirvladyslav.memory.buffer.Writable;
 import io.github.kushnirvladyslav.memory.buffer.typedBuffer.globalBuffers.*;
 import io.github.kushnirvladyslav.memory.data.typical.IntDataProcessor;
 import io.github.kushnirvladyslav.util.clEvent.ClEvent;
@@ -88,11 +87,11 @@ class GlobalWriteOnlyDynamicBufferTest extends AbstractGlobalDynamicalBufferTest
     // ══════════════════════════════════════════════════════════════════════════
 
     @Test @Order(1300)
-    @DisplayName("Readable interface is absent on a write-only dynamic buffer")
+    @DisplayName("ReadableGlobal interface is absent on a write-only dynamic buffer")
     void writeOnly_readableNotAvailable() {
         GlobalWriteOnlyDynamicBuffer buf = woDyn(10);
         assertFalse(buf instanceof Readable,
-                "GlobalWriteOnlyDynamicBuffer must not implement Readable");
+                "GlobalWriteOnlyDynamicBuffer must not implement ReadableGlobal");
         buf.destroy();
     }
 

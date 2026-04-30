@@ -49,6 +49,7 @@ public abstract class ImageBuffer
     protected int imageSlicePitch;
     protected int numMipLevels;
     protected int numSamples;
+    protected long memObject;
 
     protected ImageBuffer(ImageBufferBuilder<?, ?> builder) {
         super(builder);
@@ -74,6 +75,7 @@ public abstract class ImageBuffer
         imageSlicePitch = builder.imageSlicePitch;
         numMipLevels = builder.numMipLevels;
         numSamples = builder.numSamples;
+        memObject = builder.memObject;
 
         clMem = createClMem();
     }
@@ -115,7 +117,8 @@ public abstract class ImageBuffer
                     .image_row_pitch(imageRowPitch)
                     .image_slice_pitch(imageSlicePitch)
                     .num_mip_levels(numMipLevels)
-                    .num_samples(numSamples);
+                    .num_samples(numSamples)
+                    .mem_object(memObject);
 
 
             newClMem = CL12.clCreateImage(
