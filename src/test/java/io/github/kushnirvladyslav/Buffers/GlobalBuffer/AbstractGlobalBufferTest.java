@@ -73,15 +73,15 @@ public abstract class AbstractGlobalBufferTest {
 
     /**
      * Creates and returns a fully initialised buffer with the given capacity,
-     * no explicit name, no staging buffer, and default access flags for the
+     * no explicit name, and default access flags for the
      * concrete subtype.
      */
     protected abstract GlobalBuffer createBuffer(int capacity);
 
     /**
-     * Creates a buffer with the given name, capacity, and staging-buffer flag.
+     * Creates a buffer with the given name, capacity.
      */
-    protected abstract GlobalBuffer createBuffer(String name, int capacity, boolean stagingBuffer);
+    protected abstract GlobalBuffer createBuffer(String name, int capacity);
 
     /**
      * Returns {@code true} if the buffer type under test supports host reads
@@ -198,7 +198,7 @@ public abstract class AbstractGlobalBufferTest {
     @Order(104)
     @DisplayName("Buffer honours the explicit name supplied at build time")
     void creation_explicitName() {
-        GlobalBuffer buf = createBuffer("my-buffer", 10, false);
+        GlobalBuffer buf = createBuffer("my-buffer", 10);
         assertEquals("my-buffer", buf.getName());
         buf.destroy();
     }
@@ -207,7 +207,7 @@ public abstract class AbstractGlobalBufferTest {
     @Order(105)
     @DisplayName("Buffer registers itself in the context's BufferManager")
     void creation_registeredInContext() {
-        GlobalBuffer buf = createBuffer("reg-test", 10, false);
+        GlobalBuffer buf = createBuffer("reg-test", 10);
         assertNotNull(context.getBufferManager().getBuffer("reg-test"),
                 "Buffer should be findable via BufferManager");
         buf.destroy();
@@ -232,20 +232,10 @@ public abstract class AbstractGlobalBufferTest {
     }
 
     @Test
-    @Order(108)
-    @DisplayName("Buffer with staging buffer can be constructed without error")
-    void creation_withStagingBuffer() {
-        assertDoesNotThrow(() -> {
-            GlobalBuffer buf = createBuffer("staged", 32, true);
-            buf.destroy();
-        });
-    }
-
-    @Test
     @Order(109)
     @DisplayName("toString() mentions class name, buffer name, status, and data class")
     void creation_toStringContent() {
-        GlobalBuffer buf = createBuffer("ts-buf", 10, false);
+        GlobalBuffer buf = createBuffer("ts-buf", 10);
         String s = buf.toString();
         assertTrue(s.contains("ts-buf"), "toString should contain the name");
         assertTrue(s.contains("RUNNING"),  "toString should contain status");
@@ -287,7 +277,7 @@ public abstract class AbstractGlobalBufferTest {
     @Order(203)
     @DisplayName("getName() on a closed buffer throws BufferDestructionException")
     void lifecycle_getNameAfterDestroyThrows() {
-        GlobalBuffer buf = createBuffer("dead", 10, false);
+        GlobalBuffer buf = createBuffer("dead", 10);
         buf.destroy();
         assertThrows(BufferDestructionException.class, buf::getName);
     }
@@ -329,7 +319,7 @@ public abstract class AbstractGlobalBufferTest {
     @Order(207)
     @DisplayName("Buffer is deregistered from BufferManager after destroy()")
     void lifecycle_deregisteredFromManagerAfterDestroy() {
-        GlobalBuffer buf = createBuffer("dereg", 10, false);
+        GlobalBuffer buf = createBuffer("dereg", 10);
         buf.destroy();
         assertNull(context.getBufferManager().getBuffer("dereg"),
                 "Destroyed buffer should no longer appear in BufferManager");

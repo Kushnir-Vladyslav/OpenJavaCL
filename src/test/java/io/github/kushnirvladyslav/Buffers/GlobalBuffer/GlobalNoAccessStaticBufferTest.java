@@ -46,9 +46,9 @@ class GlobalNoAccessStaticBufferTest extends AbstractGlobalStaticBufferTest {
 
     @Override
     protected GlobalNoAccessStaticBuffer createBuffer(
-            String name, int capacity, boolean stagingBuffer) {
+            String name, int capacity) {
         return new GlobalNoAccessStaticBufferBuilder()
-                .setup(name, IntDataProcessor.class, context, capacity, stagingBuffer);
+                .setup(name, IntDataProcessor.class, context, capacity);
     }
 
     @Override
@@ -311,27 +311,6 @@ class GlobalNoAccessStaticBufferTest extends AbstractGlobalStaticBufferTest {
 
         inputBuf.destroy();
         outputBuf.destroy();
-    }
-
-    @Test
-    @Order(1303)
-    @DisplayName("Round-trip with staging buffer: plant via staging, kernel, harvest")
-    void roundTrip_stagingBuffer() {
-        int n = 8;
-        GlobalNoAccessStaticBuffer buf = createBuffer("na-staged", n, true);
-        int[] input = new int[n];
-        for (int i = 0; i < n; i++) input[i] = n - i;
-        plant(buf, input);
-
-        clKernel = buildKernel("double_na_staged", "", "buf[get_global_id(0)] *= 2;");
-        buf.bindToKernel(clKernel, 0);
-        enqueueKernel(clKernel, n);
-
-        int[] result = harvest(buf);
-        for (int i = 0; i < n; i++) {
-            assertEquals((n - i) * 2, result[i], "Mismatch at index " + i);
-        }
-        buf.destroy();
     }
 
     // ══════════════════════════════════════════════════════════════════════════

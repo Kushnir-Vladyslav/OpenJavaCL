@@ -44,9 +44,9 @@ class GlobalReadWriteStaticBufferTest extends AbstractGlobalStaticBufferTest {
 
     @Override
     protected GlobalReadWriteStaticBuffer createBuffer(
-            String name, int capacity, boolean stagingBuffer) {
+            String name, int capacity) {
         return new GlobalReadWriteStaticBufferBuilder()
-                .setup(name, IntDataProcessor.class, context, capacity, stagingBuffer);
+                .setup(name, IntDataProcessor.class, context, capacity);
     }
 
     @Override
@@ -58,10 +58,6 @@ class GlobalReadWriteStaticBufferTest extends AbstractGlobalStaticBufferTest {
 
     private GlobalReadWriteStaticBuffer rwBuf(int cap) {
         return createBuffer(cap);
-    }
-
-    private GlobalReadWriteStaticBuffer rwBufStaged(int cap) {
-        return createBuffer("staged-" + cap, cap, true);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -130,33 +126,6 @@ class GlobalReadWriteStaticBufferTest extends AbstractGlobalStaticBufferTest {
         assertDoesNotThrow(() -> {
             buf.writeSync(a);
             buf.writeSync(b);
-        });
-        buf.destroy();
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // 12. WRITE SYNC – staging buffer path
-    // ══════════════════════════════════════════════════════════════════════════
-
-    @Test
-    @Order(1200)
-    @DisplayName("writeSync via staging buffer succeeds")
-    void writeSync_stagingBufferPath() {
-        GlobalReadWriteStaticBuffer buf = rwBufStaged(8);
-        int[] data = {1, 2, 3, 4, 5, 6, 7, 8};
-        assertDoesNotThrow(() -> buf.writeSync(data));
-        buf.destroy();
-    }
-
-    @Test
-    @Order(1201)
-    @DisplayName("Repeated writeSync via staging buffer does not corrupt state")
-    void writeSync_stagingBufferRepeated() {
-        GlobalReadWriteStaticBuffer buf = rwBufStaged(4);
-        assertDoesNotThrow(() -> {
-            for (int i = 0; i < 10; i++) {
-                buf.writeSync(new int[]{i, i + 1, i + 2, i + 3});
-            }
         });
         buf.destroy();
     }
@@ -425,36 +394,6 @@ class GlobalReadWriteStaticBufferTest extends AbstractGlobalStaticBufferTest {
         buf.writeSync(new int[]{1, 2, 3, 4});
         int[] dest = new int[4];
         assertDoesNotThrow(() -> buf.readSync((ClEventList) null, dest));
-        buf.destroy();
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // 18. READ SYNC – staging buffer path
-    // ══════════════════════════════════════════════════════════════════════════
-
-    @Test
-    @Order(1800)
-    @DisplayName("readSync via staging buffer returns correct data")
-    void readSync_stagingBuffer() {
-        GlobalReadWriteStaticBuffer buf = rwBufStaged(4);
-        int[] src = {11, 22, 33, 44};
-        buf.writeSync(src);
-        int[] result = (int[]) buf.readSync(4);
-        assertArrayEquals(src, result);
-        buf.destroy();
-    }
-
-    @Test
-    @Order(1801)
-    @DisplayName("Repeated readSync via staging buffer returns consistent data")
-    void readSync_stagingBufferRepeated() {
-        GlobalReadWriteStaticBuffer buf = rwBufStaged(4);
-        int[] src = {1, 2, 3, 4};
-        buf.writeSync(src);
-        for (int i = 0; i < 5; i++) {
-            int[] got = (int[]) buf.readSync(4);
-            assertArrayEquals(src, got, "Iteration " + i + " mismatch");
-        }
         buf.destroy();
     }
 
@@ -764,29 +703,6 @@ class GlobalReadWriteStaticBufferTest extends AbstractGlobalStaticBufferTest {
 
         for (int i = 0; i < n; i++) {
             assertEquals(i + 11, dest[i], "Mismatch at index " + i);
-        }
-        buf.destroy();
-    }
-
-    @Test
-    @Order(2302)
-    @DisplayName("Round-trip with staging buffer: write → kernel → read via staging")
-    void roundTrip_stagingBuffer() throws Exception {
-        int n = 16;
-        GlobalReadWriteStaticBuffer buf = rwBufStaged(n);
-
-        int[] input = new int[n];
-        for (int i = 0; i < n; i++) input[i] = n - i;
-        buf.writeSync(input);
-
-        // Negate: data[gid] = -data[gid]
-        clKernel = buildKernel("negate", "", "buf[get_global_id(0)] = -buf[get_global_id(0)];");
-        buf.bindToKernel(clKernel, 0);
-        enqueueKernel(clKernel, n);
-
-        int[] result = (int[]) buf.readSync(n);
-        for (int i = 0; i < n; i++) {
-            assertEquals(-(n - i), result[i]);
         }
         buf.destroy();
     }

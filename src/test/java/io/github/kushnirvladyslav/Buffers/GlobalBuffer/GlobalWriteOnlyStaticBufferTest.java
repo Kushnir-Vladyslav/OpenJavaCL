@@ -46,9 +46,9 @@ class GlobalWriteOnlyStaticBufferTest extends AbstractGlobalStaticBufferTest {
 
     @Override
     protected GlobalWriteOnlyStaticBuffer createBuffer(
-            String name, int capacity, boolean stagingBuffer) {
+            String name, int capacity) {
         return new GlobalWriteOnlyStaticBufferBuilder()
-                .setup(name, IntDataProcessor.class, context, capacity, stagingBuffer);
+                .setup(name, IntDataProcessor.class, context, capacity);
     }
 
     @Override
@@ -181,32 +181,6 @@ class GlobalWriteOnlyStaticBufferTest extends AbstractGlobalStaticBufferTest {
         assertDoesNotThrow(() -> {
             buf.writeSync(new int[]{1, 2, 3, 4});
             buf.writeSync(new int[]{5, 6, 7, 8});
-        });
-        buf.destroy();
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // 13. WRITE SYNC – staging buffer path
-    // ══════════════════════════════════════════════════════════════════════════
-
-    @Test
-    @Order(1300)
-    @DisplayName("writeSync via staging buffer succeeds")
-    void writeSync_stagingBufferPath() {
-        GlobalWriteOnlyStaticBuffer buf = createBuffer("staged", 8, true);
-        assertDoesNotThrow(() -> buf.writeSync(new int[]{1, 2, 3, 4, 5, 6, 7, 8}));
-        buf.destroy();
-    }
-
-    @Test
-    @Order(1301)
-    @DisplayName("Repeated writeSync via staging buffer does not corrupt state")
-    void writeSync_stagingBufferRepeated() {
-        GlobalWriteOnlyStaticBuffer buf = createBuffer("staged-rep", 4, true);
-        assertDoesNotThrow(() -> {
-            for (int i = 0; i < 10; i++) {
-                buf.writeSync(new int[]{i, i + 1, i + 2, i + 3});
-            }
         });
         buf.destroy();
     }
@@ -469,20 +443,6 @@ class GlobalWriteOnlyStaticBufferTest extends AbstractGlobalStaticBufferTest {
         for (int i = 0; i < n; i++) {
             assertEquals(i + 5, result[i], "Mismatch at index " + i);
         }
-        buf.destroy();
-    }
-
-    @Test
-    @Order(1804)
-    @DisplayName("Round-trip with staging buffer: writeSync via staging, verify via harvest")
-    void roundTrip_stagingBuffer() {
-        int n = 8;
-        GlobalWriteOnlyStaticBuffer buf = createBuffer("wo-staged", n, true);
-        int[] input = new int[n];
-        for (int i = 0; i < n; i++) input[i] = n - i;
-        buf.writeSync(input);
-
-        assertArrayEquals(input, harvest(buf));
         buf.destroy();
     }
 

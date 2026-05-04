@@ -45,9 +45,9 @@ class GlobalReadWriteDynamicBufferTest extends AbstractGlobalDynamicalBufferTest
 
     @Override
     protected GlobalReadWriteDynamicBuffer createBuffer(
-            String name, int capacity, boolean stagingBuffer) {
+            String name, int capacity) {
         return new GlobalReadWriteDynamicBufferBuilder()
-                .setup(name, IntDataProcessor.class, context, capacity, stagingBuffer);
+                .setup(name, IntDataProcessor.class, context, capacity);
     }
 
     @Override
@@ -59,10 +59,6 @@ class GlobalReadWriteDynamicBufferTest extends AbstractGlobalDynamicalBufferTest
 
     private GlobalReadWriteDynamicBuffer rwDyn(int capacity) {
         return createBuffer(capacity);
-    }
-
-    private GlobalReadWriteDynamicBuffer rwDynStaged(int capacity) {
-        return createBuffer("staged-rwd-" + capacity, capacity, true);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -108,15 +104,6 @@ class GlobalReadWriteDynamicBufferTest extends AbstractGlobalDynamicalBufferTest
             buf.writeSync(data);
             buf.writeSync(data);
         });
-        buf.destroy();
-    }
-
-    @Test @Order(1304)
-    @DisplayName("writeSync via staging buffer succeeds")
-    void writeSync_stagingPath() {
-        GlobalReadWriteDynamicBuffer buf = rwDynStaged(10);
-        int cap = buf.getCapacity();
-        assertDoesNotThrow(() -> buf.writeSync(new int[cap]));
         buf.destroy();
     }
 
@@ -253,18 +240,6 @@ class GlobalReadWriteDynamicBufferTest extends AbstractGlobalDynamicalBufferTest
         int[] dest = new int[cap];
         buf.readSync(dest);
         assertArrayEquals(written, dest);
-        buf.destroy();
-    }
-
-    @Test @Order(1603)
-    @DisplayName("readSync via staging buffer returns correct data")
-    void readSync_stagingBuffer() {
-        GlobalReadWriteDynamicBuffer buf = rwDynStaged(10);
-        int cap = buf.getCapacity();
-        int[] data = new int[cap];
-        for (int i = 0; i < cap; i++) data[i] = i + 1;
-        buf.writeSync(data);
-        assertArrayEquals(data, (int[]) buf.readSync(cap));
         buf.destroy();
     }
 
@@ -405,40 +380,6 @@ class GlobalReadWriteDynamicBufferTest extends AbstractGlobalDynamicalBufferTest
         buf.destroy();
     }
 
-    @Test @Order(1805)
-    @DisplayName("staging buffer: data is preserved after grow resize")
-    void preserve_stagingDataAfterGrow() {
-        GlobalReadWriteDynamicBuffer buf = rwDynStaged(10);
-        int cap = buf.getCapacity();
-        int[] data = new int[cap];
-        for (int i = 0; i < cap; i++) data[i] = i;
-        buf.writeSync(data);
-
-        buf.resize(cap + 50);
-
-        assertArrayEquals(data, (int[]) buf.readSync(cap),
-                "Data must survive grow resize with staging buffer");
-        buf.destroy();
-    }
-
-    @Test @Order(1806)
-    @DisplayName("staging buffer: data is preserved after shrink resize")
-    void preserve_stagingDataAfterShrink() {
-        GlobalReadWriteDynamicBuffer buf = rwDynStaged(100);
-        int cap = buf.getCapacity();
-        int[] data = new int[cap];
-        for (int i = 0; i < cap; i++) data[i] = i;
-        buf.writeSync(data);
-
-        int shrinkTarget = cap / 4;
-        buf.resize(shrinkTarget);
-        int newCap = buf.getCapacity();
-
-        assertArrayEquals(Arrays.copyOf(data, newCap), (int[]) buf.readSync(newCap),
-                "Prefix data must survive shrink resize with staging buffer");
-        buf.destroy();
-    }
-
     // ══════════════════════════════════════════════════════════════════════════
     // 19. ROUND-TRIP: write → GPU kernel → read
     // ══════════════════════════════════════════════════════════════════════════
@@ -512,27 +453,6 @@ class GlobalReadWriteDynamicBufferTest extends AbstractGlobalDynamicalBufferTest
         buf.readAsync(dest).waitForComplete();
         for (int i = 0; i < newCap; i++) {
             assertEquals(-i, dest[i], "Mismatch at index " + i);
-        }
-        buf.destroy();
-    }
-
-    @Test @Order(1903)
-    @DisplayName("Round-trip with staging buffer: write, kernel, read")
-    void roundTrip_stagingBuffer() {
-        GlobalReadWriteDynamicBuffer buf = rwDynStaged(10);
-        int n = buf.getCapacity();
-        int[] input = new int[n];
-        for (int i = 0; i < n; i++) input[i] = n - i;
-        buf.writeSync(input);
-
-        clKernel = buildKernel("negate_staged_rwd",
-                "", "buf[get_global_id(0)] = -buf[get_global_id(0)];");
-        buf.bindToKernel(clKernel, 0);
-        enqueueKernel(clKernel, n);
-
-        int[] result = (int[]) buf.readSync(n);
-        for (int i = 0; i < n; i++) {
-            assertEquals(-(n - i), result[i], "Mismatch at index " + i);
         }
         buf.destroy();
     }

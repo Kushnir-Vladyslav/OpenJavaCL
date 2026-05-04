@@ -31,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 public interface WritableGlobal
         <T extends CopyableGlobalBuffer & WritableGlobal<T>>{
@@ -216,13 +215,7 @@ public interface WritableGlobal
         ByteBuffer tempNativeBuffer = null;
 
         try (MemoryStack stack = MemoryStack.stackPush()){
-            if(buffer.stagingBuffer == null) {
-                tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
-            } else {
-                buffer.stagingBuffer.rewind().limit((int)byteLen);
-                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
-                buffer.stagingBuffer.clear();
-            }
+            tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
 
             ToByteBuffer converter = (ToByteBuffer) dataProcessor;
             converter.convertToByteBuffer(tempNativeBuffer, array);
@@ -243,10 +236,6 @@ public interface WritableGlobal
             }
 
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
-                if(buffer.stagingBuffer == null){
-                    MemoryUtil.memFree(tempNativeBuffer);
-                }
-
                 String message = String.format(
                         "OpenCL write buffer failed for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
@@ -254,9 +243,7 @@ public interface WritableGlobal
                 throw new BufferOperationException(message, errorCode);
             }
         }finally {
-            if(buffer.stagingBuffer == null && tempNativeBuffer != null){
-                MemoryUtil.memFree(tempNativeBuffer);
-            }
+            MemoryUtil.memFree(tempNativeBuffer);
         }
     }
 
@@ -457,13 +444,7 @@ public interface WritableGlobal
         ByteBuffer tempNativeBuffer = null;
 
         try (MemoryStack stack = MemoryStack.stackPush()){
-            if(buffer.stagingBuffer == null) {
-                tempNativeBuffer = MemoryUtil.memAlloc(len);
-            } else {
-                buffer.stagingBuffer.rewind().limit(len);
-                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
-                buffer.stagingBuffer.clear();
-            }
+            tempNativeBuffer = MemoryUtil.memAlloc(len);
 
             tempNativeBuffer.put(array).rewind();
 
@@ -482,10 +463,6 @@ public interface WritableGlobal
             }
 
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
-                if(buffer.stagingBuffer == null){
-                    MemoryUtil.memFree(tempNativeBuffer);
-                }
-
                 String message = String.format(
                         "OpenCL write buffer failed for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
@@ -493,9 +470,7 @@ public interface WritableGlobal
                 throw new BufferOperationException(message, errorCode);
             }
         }finally {
-            if(buffer.stagingBuffer == null && tempNativeBuffer != null){
-                MemoryUtil.memFree(tempNativeBuffer);
-            }
+            MemoryUtil.memFree(tempNativeBuffer);
         }
     }
 

@@ -25,7 +25,6 @@ public abstract class GlobalBufferBuilder
     private static final Logger logger = LoggerFactory.getLogger(GlobalBufferBuilder.class);
 
     private int capacity = 1;
-    private boolean stagingBuffer = false;
 
     @SuppressWarnings("unchecked")
     public T withCapacity(int capacity) {
@@ -39,17 +38,7 @@ public abstract class GlobalBufferBuilder
         return (T) this;
     }
 
-    @SuppressWarnings("unchecked")
-    public T withStagingBuffer(boolean stagingBuffer){
-        this.stagingBuffer = stagingBuffer;
-        return (T) this;
-    }
-
     protected int getCapacity(){
         return capacity;
-    }
-
-    protected boolean getStagingBuffer() {
-        return stagingBuffer;
     }
 }

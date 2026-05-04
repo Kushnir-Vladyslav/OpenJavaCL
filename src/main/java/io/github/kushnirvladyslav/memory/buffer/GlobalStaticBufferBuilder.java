@@ -52,45 +52,11 @@ public abstract class GlobalStaticBufferBuilder
     }
 
     public <D extends DataProcessor> B setup(
-            Class<D> newClass, ClContext clContext,
-            int capacity, boolean stagingBuffer) {
-        withStagingBuffer(stagingBuffer);
-
-        return setup(newClass, clContext, capacity);
-    }
-
-    public <D extends DataProcessor> B setup(
             String name, Class<D> newClass, ClContext clContext,
             DeviceMemoryAccess deviceMemoryAccess,
             int capacity) {
         withName(name);
 
         return setup(newClass, clContext, deviceMemoryAccess, capacity);
-    }
-
-    public <D extends DataProcessor> B setup(
-            String name, Class<D> newClass, ClContext clContext,
-            int capacity, boolean stagingBuffer) {
-        withName(name);
-
-        return setup(newClass, clContext, capacity, stagingBuffer);
-    }
-
-    public <D extends DataProcessor> B setup(
-            Class<D> newClass, ClContext clContext,
-            DeviceMemoryAccess deviceMemoryAccess,
-            int capacity, boolean stagingBuffer) {
-        withDeviceMemoryAccess(deviceMemoryAccess);
-
-        return setup(newClass, clContext, capacity, stagingBuffer);
-    }
-
-    public <D extends DataProcessor> B setup(
-            String name, Class<D> newClass, ClContext clContext,
-            DeviceMemoryAccess deviceMemoryAccess,
-            int capacity, boolean stagingBuffer){
-        withName(name);
-
-        return setup(newClass, clContext, deviceMemoryAccess, capacity, stagingBuffer);
     }
 }

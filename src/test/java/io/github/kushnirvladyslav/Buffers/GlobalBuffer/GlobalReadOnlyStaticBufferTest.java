@@ -43,9 +43,9 @@ class GlobalReadOnlyStaticBufferTest extends AbstractGlobalStaticBufferTest {
 
     @Override
     protected GlobalReadOnlyStaticBuffer createBuffer(
-            String name, int capacity, boolean stagingBuffer) {
+            String name, int capacity) {
         return new GlobalReadOnlyStaticBufferBuilder()
-                .setup(name, IntDataProcessor.class, context, capacity, stagingBuffer);
+                .setup(name, IntDataProcessor.class, context, capacity);
     }
 
     @Override
@@ -146,31 +146,6 @@ class GlobalReadOnlyStaticBufferTest extends AbstractGlobalStaticBufferTest {
         buf.destroy();
     }
 
-    @Test
-    @Order(1204)
-    @DisplayName("readSync via staging buffer returns the correct data")
-    void readOnly_readSyncStagingBuffer() {
-        GlobalReadOnlyStaticBuffer buf = createBuffer("ro-staged", 4, true);
-        int[] expected = {11, 22, 33, 44};
-        plant(buf, expected);
-        int[] got = (int[]) buf.readSync(4);
-        assertArrayEquals(expected, got);
-        buf.destroy();
-    }
-
-    @Test
-    @Order(1205)
-    @DisplayName("Repeated readSync via staging buffer returns consistent data")
-    void readOnly_readSyncStagingBufferRepeated() {
-        GlobalReadOnlyStaticBuffer buf = createBuffer("ro-staged-rep", 4, true);
-        int[] expected = {1, 2, 3, 4};
-        plant(buf, expected);
-        for (int i = 0; i < 5; i++) {
-            assertArrayEquals(expected, (int[]) buf.readSync(4),
-                    "Iteration " + i + " mismatch");
-        }
-        buf.destroy();
-    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // 13. HOST READ ASYNC
@@ -369,27 +344,6 @@ class GlobalReadOnlyStaticBufferTest extends AbstractGlobalStaticBufferTest {
         buf.destroy();
     }
 
-    @Test
-    @Order(1601)
-    @DisplayName("Round-trip with staging buffer: plant → kernel → read via staging")
-    void readOnly_roundTripStagingBuffer() {
-        int n = 8;
-        GlobalReadOnlyStaticBuffer buf = createBuffer("ro-rt-staged", n, true);
-        int[] input = new int[n];
-        for (int i = 0; i < n; i++) input[i] = n - i;
-        plant(buf, input);
-
-        clKernel = buildKernel("double_ro", "",
-                "buf[get_global_id(0)] *= 2;");
-        buf.bindToKernel(clKernel, 0);
-        enqueueKernel(clKernel, n);
-
-        int[] result = (int[]) buf.readSync(n);
-        for (int i = 0; i < n; i++) {
-            assertEquals((n - i) * 2, result[i]);
-        }
-        buf.destroy();
-    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // 17. COPY

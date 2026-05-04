@@ -51,10 +51,6 @@ public abstract class AbstractGlobalDynamicalBufferTest extends AbstractGlobalBu
         return (GlobalDynamicalBuffer) createBuffer(capacity);
     }
 
-    protected GlobalDynamicalBuffer dynBufStaged(String name, int capacity) {
-        return (GlobalDynamicalBuffer) createBuffer(name, capacity, true);
-    }
-
     // ── Override: dynamic buffers are always device READ_WRITE ───────────────
     @Override
     protected void assumeBufferCanBeUsedAsSource() { /* no-op */ }
@@ -479,50 +475,6 @@ public abstract class AbstractGlobalDynamicalBufferTest extends AbstractGlobalBu
 
         assertTrue(buf.isBoundToKernel(clKernel),
                 "Binding must persist after auto-grow via setPointer");
-        buf.destroy();
-    }
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // 12. STAGING BUFFER resize behaviour
-    // ══════════════════════════════════════════════════════════════════════════
-
-    @Test @Order(1200)
-    @DisplayName("staging buffer: grow resize completes without error")
-    void staging_growSucceeds() {
-        GlobalDynamicalBuffer buf = dynBufStaged("staged-grow", 10);
-        int cap = buf.getCapacity();
-        assertDoesNotThrow(() -> buf.resize(cap + 50));
-        buf.destroy();
-    }
-
-    @Test @Order(1201)
-    @DisplayName("staging buffer: shrink resize completes without error")
-    void staging_shrinkSucceeds() {
-        GlobalDynamicalBuffer buf = dynBufStaged("staged-shrink", 100);
-        int cap = buf.getCapacity();
-        assertDoesNotThrow(() -> buf.resize(cap / 4));
-        buf.destroy();
-    }
-
-    @Test @Order(1202)
-    @DisplayName("staging buffer: alternating grow/shrink cycles all succeed")
-    void staging_alternateCycles() {
-        GlobalDynamicalBuffer buf = dynBufStaged("staged-cycle", 10);
-        assertDoesNotThrow(() -> {
-            buf.resize(buf.getCapacity() + 50);   // grow
-            buf.resize(buf.getCapacity() + 50);   // grow again
-            buf.resize(buf.getCapacity() / 4);    // shrink
-            buf.resize(buf.getCapacity() + 100);  // grow back
-        });
-        buf.destroy();
-    }
-
-    @Test @Order(1203)
-    @DisplayName("staging buffer: auto-grow via setPointer completes without error")
-    void staging_autoGrowViaPointer() {
-        GlobalDynamicalBuffer buf = dynBufStaged("staged-autogrow", 10);
-        int cap = buf.getCapacity();
-        assertDoesNotThrow(() -> buf.setPointer(cap + 20));
         buf.destroy();
     }
 }

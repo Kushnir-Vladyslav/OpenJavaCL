@@ -22,11 +22,8 @@ import io.github.kushnirvladyslav.util.clEvent.ClEventList;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.opencl.CL10;
 import org.lwjgl.system.MemoryStack;
-import org.lwjgl.system.MemoryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.nio.ByteBuffer;
 
 public abstract class GlobalDynamicalBuffer
         extends CopyableGlobalBuffer{
@@ -151,23 +148,6 @@ public abstract class GlobalDynamicalBuffer
 
             capacity = targetCapacity;
             clMem = newClMem;
-
-            if (stagingBuffer != null){
-                int newStagingBufferSize = targetCapacity * dataSize;
-                ByteBuffer newStagingBuffer = MemoryUtil.memAlloc(newStagingBufferSize);
-
-                int bytesToCopy = Math.min(oldCapacity, targetCapacity) * dataSize;
-
-                int oldPosition = stagingBuffer.position();
-                stagingBuffer.position(0).limit(bytesToCopy);
-                newStagingBuffer.put(stagingBuffer);
-
-                stagingBuffer.clear();
-                MemoryUtil.memFree(stagingBuffer);
-
-                newStagingBuffer.position(Math.min(newStagingBufferSize, oldPosition));
-                stagingBuffer = newStagingBuffer;
-            }
 
             rebindAllKernels();
         } catch (Exception e) {

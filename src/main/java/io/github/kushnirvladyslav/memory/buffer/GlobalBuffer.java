@@ -38,8 +38,6 @@ public abstract class GlobalBuffer
         extends ClMemBuffer{
     private static final Logger logger = LoggerFactory.getLogger(GlobalBuffer.class);
 
-    protected ByteBuffer stagingBuffer;
-
     protected int pointer = 0;
     protected int capacity;
 
@@ -47,10 +45,6 @@ public abstract class GlobalBuffer
         super(builder);
 
         this.capacity = builder.getCapacity();
-
-        if(builder.getStagingBuffer()){
-            stagingBuffer = MemoryUtil.memAlloc(capacity * dataProcessor.getSizeStruct());
-        }
 
        this.clMem = createClMem();
     }
@@ -138,10 +132,6 @@ public abstract class GlobalBuffer
 
     @Override
     protected void performDestroy(){
-        if(stagingBuffer != null) {
-            MemoryUtil.memFree(stagingBuffer);
-        }
-
         super.performDestroy();
     }
 }

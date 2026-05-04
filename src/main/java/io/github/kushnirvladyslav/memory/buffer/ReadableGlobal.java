@@ -31,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<T>> {
     Logger logger = LoggerFactory.getLogger(ReadableGlobal.class);
@@ -213,13 +212,7 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
 
         try (MemoryStack stack = MemoryStack.stackPush()){
 
-            if(buffer.stagingBuffer == null) {
-                tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
-            } else {
-                buffer.stagingBuffer.rewind().limit((int)byteLen);
-                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
-                buffer.stagingBuffer.clear();
-            }
+            tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
 
             int errorCode = CL10.clEnqueueReadBuffer(
                     buffer.context.getCommandQueue(),
@@ -236,10 +229,6 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
             }
 
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
-                if(buffer.stagingBuffer == null){
-                    MemoryUtil.memFree(tempNativeBuffer);
-                }
-
                 String message = String.format(
                         "OpenCL read buffer failed for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
@@ -252,9 +241,7 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
             return targetArray;
 
         }finally {
-            if(buffer.stagingBuffer == null && tempNativeBuffer != null){
-                MemoryUtil.memFree(tempNativeBuffer);
-            }
+            MemoryUtil.memFree(tempNativeBuffer);
         }
     }
 
@@ -351,13 +338,7 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
 
         try (MemoryStack stack = MemoryStack.stackPush()){
 
-            if(buffer.stagingBuffer == null) {
-                tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
-            } else {
-                buffer.stagingBuffer.rewind().limit((int)byteLen);
-                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
-                buffer.stagingBuffer.clear();
-            }
+            tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
 
             int errorCode = CL10.clEnqueueReadBuffer(
                     buffer.context.getCommandQueue(),
@@ -374,10 +355,6 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
             }
 
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
-                if(buffer.stagingBuffer == null){
-                    MemoryUtil.memFree(tempNativeBuffer);
-                }
-
                 String message = String.format(
                         "OpenCL read buffer failed for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
@@ -387,9 +364,7 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
 
             ((FromByteBuffer) dataProcessor).convertFromByteBuffer((ByteBuffer) tempNativeBuffer.rewind(), targetArray);
         }finally {
-            if(buffer.stagingBuffer == null && tempNativeBuffer != null){
-                MemoryUtil.memFree(tempNativeBuffer);
-            }
+            MemoryUtil.memFree(tempNativeBuffer);
         }
     }
 
@@ -596,13 +571,7 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
         ByteBuffer tempNativeBuffer = null;
 
         try (MemoryStack stack = MemoryStack.stackPush()){
-            if(buffer.stagingBuffer == null) {
-                tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
-            } else {
-                buffer.stagingBuffer.rewind().limit((int)byteLen);
-                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
-                buffer.stagingBuffer.clear();
-            }
+            tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
 
             int errorCode = CL10.clEnqueueReadBuffer(
                     buffer.context.getCommandQueue(),
@@ -619,9 +588,6 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
             }
 
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
-                if(buffer.stagingBuffer == null){
-                    MemoryUtil.memFree(tempNativeBuffer);
-                }
                 String message = String.format(
                         "OpenCL read buffer failed for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
@@ -635,9 +601,7 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
             return targetArray;
 
         }finally {
-            if(buffer.stagingBuffer == null && tempNativeBuffer != null){
-                MemoryUtil.memFree(tempNativeBuffer);
-            }
+            MemoryUtil.memFree(tempNativeBuffer);
         }
     }
 
@@ -722,13 +686,7 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
         ByteBuffer tempNativeBuffer = null;
 
         try (MemoryStack stack = MemoryStack.stackPush()){
-            if(buffer.stagingBuffer == null) {
-                tempNativeBuffer = MemoryUtil.memAlloc(len);
-            } else {
-                buffer.stagingBuffer.rewind().limit(len);
-                tempNativeBuffer = buffer.stagingBuffer.slice().order(ByteOrder.nativeOrder());
-                buffer.stagingBuffer.clear();
-            }
+            tempNativeBuffer = MemoryUtil.memAlloc(len);
 
             int errorCode = CL10.clEnqueueReadBuffer(
                     buffer.context.getCommandQueue(),
@@ -745,9 +703,6 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
             }
 
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
-                if(buffer.stagingBuffer == null){
-                    MemoryUtil.memFree(tempNativeBuffer);
-                }
                 String message = String.format(
                         "OpenCL read buffer failed for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
@@ -758,9 +713,7 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
             tempNativeBuffer.rewind();
             tempNativeBuffer.get(targetArray);
         }finally {
-            if(buffer.stagingBuffer == null && tempNativeBuffer != null){
-                MemoryUtil.memFree(tempNativeBuffer);
-            }
+            MemoryUtil.memFree(tempNativeBuffer);
         }
     }
 

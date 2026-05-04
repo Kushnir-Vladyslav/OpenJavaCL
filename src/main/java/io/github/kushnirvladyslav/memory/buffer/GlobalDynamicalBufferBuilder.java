@@ -50,22 +50,6 @@ public abstract class GlobalDynamicalBufferBuilder
         return setup(newClass, clContext, capacity);
     }
 
-    public <D extends DataProcessor> B setup(
-            Class<D> newClass, ClContext clContext,
-            int capacity, boolean stagingBuffer) {
-        withStagingBuffer(stagingBuffer);
-
-        return setup(newClass, clContext, capacity);
-    }
-
-    public <D extends DataProcessor> B setup(
-            String name, Class<D> newClass, ClContext clContext,
-            int capacity, boolean stagingBuffer) {
-        withName(name);
-
-        return setup(newClass, clContext, capacity, stagingBuffer);
-    }
-
     @Override
     @SuppressWarnings("unchecked")
     public T withDeviceMemoryAccess(DeviceMemoryAccess deviceMemoryAccess) {

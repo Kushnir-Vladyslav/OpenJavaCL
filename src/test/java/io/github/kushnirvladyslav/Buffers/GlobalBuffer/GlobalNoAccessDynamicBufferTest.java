@@ -46,9 +46,9 @@ class GlobalNoAccessDynamicBufferTest extends AbstractGlobalDynamicalBufferTest 
 
     @Override
     protected GlobalNoAccessDynamicBuffer createBuffer(
-            String name, int capacity, boolean stagingBuffer) {
+            String name, int capacity) {
         return new GlobalNoAccessDynamicBufferBuilder()
-                .setup(name, IntDataProcessor.class, context, capacity, stagingBuffer);
+                .setup(name, IntDataProcessor.class, context, capacity);
     }
 
     @Override
@@ -89,10 +89,6 @@ class GlobalNoAccessDynamicBufferTest extends AbstractGlobalDynamicalBufferTest 
 
     private GlobalNoAccessDynamicBuffer naDyn(int capacity) {
         return createBuffer(capacity);
-    }
-
-    private GlobalNoAccessDynamicBuffer naDynStaged(int capacity) {
-        return createBuffer("staged-nad-" + capacity, capacity, true);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -322,40 +318,6 @@ class GlobalNoAccessDynamicBufferTest extends AbstractGlobalDynamicalBufferTest 
         buf.destroy();
     }
 
-    @Test @Order(1504)
-    @DisplayName("staging buffer: data is preserved after grow resize")
-    void preserve_stagingDataAfterGrow() {
-        GlobalNoAccessDynamicBuffer buf = naDynStaged(10);
-        int cap = buf.getCapacity();
-        int[] data = new int[cap];
-        for (int i = 0; i < cap; i++) data[i] = i;
-        plant(buf, data);
-
-        buf.resize(cap + 50);
-
-        assertArrayEquals(data, harvest(buf, cap),
-                "Data must survive grow resize with staging buffer");
-        buf.destroy();
-    }
-
-    @Test @Order(1505)
-    @DisplayName("staging buffer: prefix data is preserved after shrink resize")
-    void preserve_stagingDataAfterShrink() {
-        GlobalNoAccessDynamicBuffer buf = naDynStaged(100);
-        int cap = buf.getCapacity();
-        int[] data = new int[cap];
-        for (int i = 0; i < cap; i++) data[i] = i;
-        plant(buf, data);
-
-        int shrinkTarget = cap / 4;
-        buf.resize(shrinkTarget);
-        int newCap = buf.getCapacity();
-
-        assertArrayEquals(Arrays.copyOf(data, newCap), harvest(buf),
-                "Prefix data must survive shrink with staging buffer");
-        buf.destroy();
-    }
-
     // ══════════════════════════════════════════════════════════════════════════
     // 16. ROUND-TRIP: plant → GPU kernel → harvest
     // ══════════════════════════════════════════════════════════════════════════
@@ -471,27 +433,6 @@ class GlobalNoAccessDynamicBufferTest extends AbstractGlobalDynamicalBufferTest 
 
         inputBuf.destroy();
         outputBuf.destroy();
-    }
-
-    @Test @Order(1604)
-    @DisplayName("Round-trip with staging buffer: plant, kernel, harvest")
-    void roundTrip_stagingBuffer() {
-        GlobalNoAccessDynamicBuffer buf = naDynStaged(10);
-        int n = buf.getCapacity();
-        int[] input = new int[n];
-        for (int i = 0; i < n; i++) input[i] = n - i;
-        plant(buf, input);
-
-        clKernel = buildKernel("negate_staged_nad",
-                "", "buf[get_global_id(0)] = -buf[get_global_id(0)];");
-        buf.bindToKernel(clKernel, 0);
-        enqueueKernel(clKernel, n);
-
-        int[] result = harvest(buf, n);
-        for (int i = 0; i < n; i++) {
-            assertEquals(-(n - i), result[i], "Mismatch at index " + i);
-        }
-        buf.destroy();
     }
 
     @Test @Order(1605)
