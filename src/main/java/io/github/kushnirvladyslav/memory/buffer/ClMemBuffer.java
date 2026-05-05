@@ -28,12 +28,16 @@ import org.lwjgl.system.MemoryStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
+
 public abstract class ClMemBuffer
         extends KernelAwareBuffer {
     private static final Logger logger = LoggerFactory.getLogger(ClMemBuffer.class);
 
     protected long flags = 0L;
     protected long clMem;
+
+    protected ByteBuffer mappedMemory;
 
     protected ClMemBuffer(ClMemBufferBuilder<?, ?> builder) {
         super(builder);
