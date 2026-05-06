@@ -102,7 +102,7 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
                 MemoryUtil.memFree(tempNativeBuffer);
 
-                customEvent.setComplete();
+                customEvent.setError(errorCode);
                 String message = String.format(
                         "OpenCL read buffer failed for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
@@ -195,7 +195,7 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
                     false,
                     CL10.CL_MAP_READ,
                     (long) offset * dataProcessor.getSizeStruct(),
-                    (long) dataProcessor.getSizeArray(targetArray)* dataProcessor.getSizeStruct(),
+                    (long) dataProcessor.getSizeArray(targetArray) * dataProcessor.getSizeStruct(),
                     events != null ? events.getEventList(stack) : null,
                     rowEvent,
                     errorCode,
@@ -207,9 +207,9 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
             }
 
             if (!OpenCLErrorUtils.isSuccess(errorCode.get(0))) {
-                customEvent.setComplete();
+                customEvent.setError(errorCode.get(0));
                 String message = String.format(
-                        "OpenCL read buffer failed for buffer '%s': error - %s",
+                        "OpenCL read buffer failed of mapping memory for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode.get(0)));
                 logger.error(message);
                 throw new BufferOperationException(message, errorCode.get(0));
@@ -228,13 +228,12 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
                     int errCode = CL10.clEnqueueUnmapMemObject(
                             buffer.context.getCommandQueue(),
                             buffer.clMem,
-                            buffer.mappedMemory,
+                            mappedMemory,
                             null,
                             null
                             );
 
                     if (!OpenCLErrorUtils.isSuccess(errCode)) {
-                        customEvent.setComplete();
                         String message = String.format(
                                 "OpenCL read buffer failed of unmapping memory for buffer '%s': error - %s",
                                 buffer.getName(), OpenCLErrorUtils.getCLErrorString(errCode));
@@ -287,6 +286,35 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
         return readNextAsync(null, targetArray);
     }
 
+
+    @SuppressWarnings("unchecked")
+    default ClEvent readNextMapAsync(ClEventList events, Object targetArray){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        int len = dataProcessor.getSizeArray(targetArray);
+        int offset = buffer.pointer;
+
+        if (offset + len > buffer.capacity) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d, capacity=%d for buffer '%s'",
+                    offset, len, buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        buffer.pointer += len;
+        return readMapAsync(offset, events, targetArray);
+    }
+
+    default ClEvent readNextMapAsync(Object targetArray){
+        return readNextMapAsync(null, targetArray);
+    }
+
+
     @SuppressWarnings("unchecked")
     default Object readSync(int offset, int len, ClEventList events){
         T buffer = (T) this;
@@ -329,11 +357,9 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
         }
 
         Object targetArray = ((FromByteBuffer)dataProcessor).createArr(len);
-        ByteBuffer tempNativeBuffer = null;
 
         try (MemoryStack stack = MemoryStack.stackPush()){
-
-            tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
+            ByteBuffer tempNativeBuffer = stack.malloc((int)byteLen);
 
             int errorCode = CL10.clEnqueueReadBuffer(
                     buffer.context.getCommandQueue(),
@@ -361,8 +387,6 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
 
             return targetArray;
 
-        }finally {
-            MemoryUtil.memFree(tempNativeBuffer);
         }
     }
 
@@ -377,6 +401,115 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
     default Object readSync(int len){
         return readSync(0, len, null);
     }
+
+
+    @SuppressWarnings("unchecked")
+    default Object readMapSync(int offset, int len, ClEventList events){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        if(offset < 0) {
+            String message = String.format(
+                    "To read data from a buffer, the offset passed cannot be negative: offset=%d, for buffer '%s'",
+                    offset, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        if(len <= 0) {
+            String message = String.format(
+                    "To read data from a buffer, the passed data size must be positive: length=%d, for buffer '%s'",
+                    len, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        if (offset + len > buffer.capacity) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d, capacity=%d for buffer '%s'",
+                    offset, len, buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        long byteLen = (long) len * dataProcessor.getSizeStruct();
+        if (byteLen > Integer.MAX_VALUE) {
+            String message = String.format(
+                    "Read size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
+                    byteLen, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        Object targetArray = ((FromByteBuffer)dataProcessor).createArr(len);
+
+        try (MemoryStack stack = MemoryStack.stackPush()){
+
+            IntBuffer errorCode = stack.mallocInt(1);
+
+            buffer.mappedMemory = CL10.clEnqueueMapBuffer(
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
+                    true,
+                    CL10.CL_MAP_READ,
+                    (long) offset * dataProcessor.getSizeStruct(),
+                    byteLen,
+                    events != null ? events.getEventList(stack) : null,
+                    null,
+                    errorCode,
+                    buffer.mappedMemory
+            );
+
+            if( events != null) {
+                events.releaseEvents();
+            }
+
+            if (!OpenCLErrorUtils.isSuccess(errorCode.get(0))) {
+                String message = String.format(
+                        "OpenCL read buffer failed of mapping memory for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode.get(0)));
+                logger.error(message);
+                throw new BufferOperationException(message, errorCode.get(0));
+            }
+
+            ((FromByteBuffer) dataProcessor).convertFromByteBuffer((ByteBuffer) buffer.mappedMemory.rewind(), targetArray);
+
+            int errCode = CL10.clEnqueueUnmapMemObject(
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
+                    buffer.mappedMemory,
+                    null,
+                    null
+            );
+
+            if (!OpenCLErrorUtils.isSuccess(errCode)) {
+                String message = String.format(
+                        "OpenCL read buffer failed of unmapping memory for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errCode));
+                logger.error(message);
+                throw new BufferOperationException(message, errCode);
+            }
+
+            return targetArray;
+
+        }
+    }
+
+    default Object readMapSync(int offset, int len){
+        return readMapSync(offset, len, null);
+    }
+
+    default Object readMapSync(int len, ClEventList events){
+        return readMapSync(0, len, events);
+    }
+
+    default Object readMapSync(int len){
+        return readMapSync(0, len, null);
+    }
+
 
     @SuppressWarnings("unchecked")
     default Object readNextSync(int len, ClEventList events){
@@ -411,6 +544,42 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
     default Object readNextSync(){
         return readNextSync(1, null);
     }
+
+
+    @SuppressWarnings("unchecked")
+    default Object readNextMapSync(int len, ClEventList events){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        int offset = buffer.pointer;
+
+        if (offset + len > buffer.capacity) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d, capacity=%d for buffer '%s'",
+                    offset, len, buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        buffer.pointer += len;
+        return readMapSync(offset, len, events);
+    }
+
+    default Object readNextMapSync(ClEventList events){
+        return readNextMapSync(1, events);
+    }
+
+    default Object readNextMapSync(int len){
+        return readNextMapSync(len, null);
+    }
+
+    default Object readNextMapSync(){
+        return readNextMapSync(1, null);
+    }
+
 
     @SuppressWarnings("unchecked")
     default void readSync(int offset, ClEventList events, Object targetArray){
@@ -455,11 +624,9 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
             throw new IllegalArgumentException(message);
         }
 
-        ByteBuffer tempNativeBuffer = null;
 
         try (MemoryStack stack = MemoryStack.stackPush()){
-
-            tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
+            ByteBuffer tempNativeBuffer = stack.malloc((int)byteLen);
 
             int errorCode = CL10.clEnqueueReadBuffer(
                     buffer.context.getCommandQueue(),
@@ -484,8 +651,6 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
             }
 
             ((FromByteBuffer) dataProcessor).convertFromByteBuffer((ByteBuffer) tempNativeBuffer.rewind(), targetArray);
-        }finally {
-            MemoryUtil.memFree(tempNativeBuffer);
         }
     }
 
@@ -500,6 +665,113 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
     default void readSync(Object targetArray){
         readSync(0, null, targetArray);
     }
+
+
+    @SuppressWarnings("unchecked")
+    default void readMapSync(int offset, ClEventList events, Object targetArray){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        if(targetArray == null) {
+            String message = String.format(
+                    "The passed array for reading the buffer '%s', can`t be null.",
+                    buffer.getName());
+            logger.error(message);
+            throw new NullPointerException(message);
+        }
+
+        if(offset < 0) {
+            String message = String.format(
+                    "To read data from a buffer, the offset passed cannot be negative: offset=%d, for buffer '%s'",
+                    offset, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        int len = dataProcessor.getSizeArray(targetArray);
+
+        if (offset + len > buffer.capacity) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d, capacity=%d for buffer '%s'",
+                    offset, len, buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        long byteLen = (long) len * dataProcessor.getSizeStruct();
+        if (byteLen > Integer.MAX_VALUE) {
+            String message = String.format(
+                    "Read size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
+                    byteLen, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+
+            IntBuffer errorCode = stack.mallocInt(1);
+
+            buffer.mappedMemory = CL10.clEnqueueMapBuffer(
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
+                    true,
+                    CL10.CL_MAP_READ,
+                    (long) offset * dataProcessor.getSizeStruct(),
+                    byteLen,
+                    events != null ? events.getEventList(stack) : null,
+                    null,
+                    errorCode,
+                    buffer.mappedMemory
+            );
+
+            if (events != null) {
+                events.releaseEvents();
+            }
+
+            if (!OpenCLErrorUtils.isSuccess(errorCode.get(0))) {
+                String message = String.format(
+                        "OpenCL read buffer failed of mapping memory for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode.get(0)));
+                logger.error(message);
+                throw new BufferOperationException(message, errorCode.get(0));
+            }
+
+            ((FromByteBuffer) dataProcessor).convertFromByteBuffer((ByteBuffer) buffer.mappedMemory.rewind(), targetArray);
+
+            int errCode = CL10.clEnqueueUnmapMemObject(
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
+                    buffer.mappedMemory,
+                    null,
+                    null
+            );
+
+            if (!OpenCLErrorUtils.isSuccess(errCode)) {
+                String message = String.format(
+                        "OpenCL read buffer failed of unmapping memory for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errCode));
+                logger.error(message);
+                throw new BufferOperationException(message, errCode);
+            }
+
+        }
+    }
+
+    default void readMapSync(int offset, Object targetArray) {
+        readMapSync(offset, null, targetArray);
+    }
+
+    default void readMapSync(ClEventList events, Object targetArray) {
+        readMapSync(0, events, targetArray);
+    }
+
+    default void readMapSync(ClEventList events) {
+        readMapSync(0, events, null);
+    }
+
 
     @SuppressWarnings("unchecked")
     default void readNextSync(ClEventList events, Object targetArray){
@@ -526,6 +798,34 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
     default void readNextSync(Object targetArray){
         readNextSync(null, targetArray);
     }
+
+
+    @SuppressWarnings("unchecked")
+    default void readNextMapSync(ClEventList events, Object targetArray){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+        int len = dataProcessor.getSizeArray(targetArray);
+        int offset = buffer.pointer;
+
+        if (offset + len > buffer.capacity) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d, capacity=%d for buffer '%s'",
+                    offset, len, buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        buffer.pointer += len;
+        readMapSync(offset, events, targetArray);
+    }
+
+    default void readNextMapSync(Object targetArray){
+        readNextMapSync(null, targetArray);
+    }
+
 
     @SuppressWarnings("unchecked")
     default ClEvent readAsyncByte(int offset, ClEventList events, byte[] targetArray){
@@ -585,10 +885,10 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
                 events.releaseEvents();
             }
 
-            if (!OpenCLErrorUtils.isSuccess(errorCode)) {
+            if (!OpenCLErrorUtils.isSuccess(errorCode) ) {
                 MemoryUtil.memFree(tempNativeBuffer);
 
-                customEvent.setComplete();
+                customEvent.setError(errorCode);
                 String message = String.format(
                         "OpenCL read buffer failed for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
@@ -619,6 +919,130 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
         return readAsyncByte(offset, null, targetArray);
     }
 
+    default ClEvent readAsyncByte(ClEventList events, byte[] targetArray){
+        return readAsyncByte(0, events, targetArray);
+    }
+
+    default ClEvent readAsyncByte(byte[] targetArray){
+        return readAsyncByte(0, null, targetArray);
+    }
+
+    @SuppressWarnings("unchecked")
+    default ClEvent readMapAsyncByte(int offset, ClEventList events, byte[] targetArray){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        if(targetArray == null) {
+            String message = String.format(
+                    "The passed array for reading the buffer '%s', can`t be null.",
+                    buffer.getName());
+            logger.error(message);
+            throw new NullPointerException(message);
+        }
+
+        if(offset < 0) {
+            String message = String.format(
+                    "To read data from a buffer, the offset passed cannot be negative: offset=%d, for buffer '%s'",
+                    offset, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        int len = targetArray.length;
+
+        if ((long)offset * dataProcessor.getSizeStruct() + len > (long)buffer.capacity * dataProcessor.getSizeStruct()) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d by Byte, length=%d by elements, capacity=%d for buffer '%s'",
+                    offset, len, (int) Math.ceil((double)len / dataProcessor.getSizeStruct()), buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        if (len % dataProcessor.getSizeStruct() != 0) {
+            logger.warn("The size of the passed array ({}) for reading the buffer {} is not a multiple of the number of elements ({}).",
+                    len, buffer.getName(), dataProcessor.getSizeStruct());
+        }
+
+        try (MemoryStack stack = MemoryStack.stackPush()){
+            PointerBuffer rowEvent = stack.mallocPointer(1);
+            IntBuffer errorCode = stack.mallocInt(1);
+            ClCustomEvent customEvent = new ClCustomEvent(buffer.context);
+
+            ByteBuffer mappedMemory = CL10.clEnqueueMapBuffer(
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
+                    false,
+                    CL10.CL_MAP_READ,
+                    (long) offset * dataProcessor.getSizeStruct(),
+                    len,
+                    events != null ? events.getEventList(stack) : null,
+                    rowEvent,
+                    errorCode,
+                    null
+            );
+
+            if (events != null) {
+                events.releaseEvents();
+            }
+
+            if (!OpenCLErrorUtils.isSuccess(errorCode.get(0))) {
+                customEvent.setError(errorCode.get(0));
+                String message = String.format(
+                        "OpenCL read buffer failed of mapping memory for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode.get(0)));
+                logger.error(message);
+                throw new BufferOperationException(message, errorCode.get(0));
+            }
+
+            ClEvent thisEvent = new ClEvent(rowEvent.get(0));
+            thisEvent.onComplete((long event, int status) ->{
+                try {
+                    if (OpenCLErrorUtils.isSuccess(status)) {
+                        mappedMemory.rewind();
+                        mappedMemory.get(targetArray);
+                        customEvent.setComplete();
+                    } else {
+                        customEvent.setError(status);
+                    }
+                } finally {
+                    int errCode = CL10.clEnqueueUnmapMemObject(
+                            buffer.context.getCommandQueue(),
+                            buffer.clMem,
+                            mappedMemory,
+                            null,
+                            null
+                    );
+
+                    if (!OpenCLErrorUtils.isSuccess(errCode)) {
+                        String message = String.format(
+                                "OpenCL read buffer failed of unmapping memory for buffer '%s': error - %s",
+                                buffer.getName(), OpenCLErrorUtils.getCLErrorString(errCode));
+                        logger.error(message);
+                    }
+                }
+            });
+
+            return customEvent;
+        }
+    }
+
+
+    default ClEvent readMapAsyncByte(int offset, byte[] targetArray){
+        return readMapAsyncByte(offset, null, targetArray);
+    }
+
+    default ClEvent readMapAsyncByte(ClEventList events, byte[] targetArray){
+        return readMapAsyncByte(0, events, targetArray);
+    }
+
+    default ClEvent readMapAsyncByte(byte[] targetArray){
+        return readMapAsyncByte(0, null, targetArray);
+    }
+
+
     @SuppressWarnings("unchecked")
     default ClEvent readNextAsyncByte(ClEventList events, byte[] targetArray){
         T buffer = (T) this;
@@ -646,6 +1070,36 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
     default ClEvent readNextAsyncByte(byte[] targetArray){
         return readNextAsyncByte(null, targetArray);
     }
+
+
+    @SuppressWarnings("unchecked")
+    default ClEvent readNextMapAsyncByte(ClEventList events, byte[] targetArray){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        int len = targetArray.length;
+        int offset = buffer.pointer;
+        int structureSize = dataProcessor.getSizeStruct();
+
+        if ((long)offset * structureSize + len > (long)buffer.capacity * structureSize) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d by Byte, length=%d by elements, capacity=%d for buffer '%s'",
+                    offset, len, (int) Math.ceil((double)len / structureSize), buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        buffer.pointer += len / structureSize;
+        return readMapAsyncByte(offset, events, targetArray);
+    }
+
+    default ClEvent readNextMapAsyncByte(byte[] targetArray){
+        return readNextMapAsyncByte(null, targetArray);
+    }
+
 
     @SuppressWarnings("unchecked")
     default byte[] readSyncByte(int offset, int len, ClEventList events){
@@ -689,10 +1143,9 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
         }
 
         byte[] targetArray = new byte[len * dataProcessor.getSizeStruct()];
-        ByteBuffer tempNativeBuffer = null;
 
         try (MemoryStack stack = MemoryStack.stackPush()){
-            tempNativeBuffer = MemoryUtil.memAlloc((int)byteLen);
+            ByteBuffer tempNativeBuffer = stack.malloc((int)byteLen);
 
             int errorCode = CL10.clEnqueueReadBuffer(
                     buffer.context.getCommandQueue(),
@@ -721,14 +1174,129 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
 
             return targetArray;
 
-        }finally {
-            MemoryUtil.memFree(tempNativeBuffer);
         }
     }
 
     default byte[] readSyncByte(int offset, int len){
         return readSyncByte(offset, len, null);
     }
+
+    default byte[] readSyncByte(int len, ClEventList events){
+        return readSyncByte(0, len, events);
+    }
+
+    default byte[] readSyncByte(int len){
+        return readSyncByte(0, len, null);
+    }
+
+
+    @SuppressWarnings("unchecked")
+    default byte[] readMapSyncByte(int offset, int len, ClEventList events){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        if(offset < 0) {
+            String message = String.format(
+                    "To read data from a buffer, the offset passed cannot be negative: offset=%d, for buffer '%s'",
+                    offset, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        if(len <= 0) {
+            String message = String.format(
+                    "To read data from a buffer, the passed data size must be positive: length=%d, for buffer '%s'",
+                    len, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        long byteLen = (long) len * dataProcessor.getSizeStruct();
+        if (byteLen > Integer.MAX_VALUE) {
+            String message = String.format(
+                    "Read size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
+                    byteLen, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        if (offset + len > buffer.capacity) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d, capacity=%d for buffer '%s'",
+                    offset, len, buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        byte[] targetArray = new byte[len * dataProcessor.getSizeStruct()];
+
+        try (MemoryStack stack = MemoryStack.stackPush()){
+
+            IntBuffer errorCode = stack.mallocInt(1);
+
+            buffer.mappedMemory = CL10.clEnqueueMapBuffer(
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
+                    true,
+                    CL10.CL_MAP_READ,
+                    (long) offset * dataProcessor.getSizeStruct(),
+                    byteLen,
+                    events != null ? events.getEventList(stack) : null,
+                    null,
+                    errorCode,
+                    buffer.mappedMemory
+            );
+
+            if( events != null) {
+                events.releaseEvents();
+            }
+
+            if (!OpenCLErrorUtils.isSuccess(errorCode.get(0))) {
+                String message = String.format(
+                        "OpenCL read buffer failed of mapping memory for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode.get(0)));
+                logger.error(message);
+                throw new BufferOperationException(message, errorCode.get(0));
+            }
+
+            ((FromByteBuffer) dataProcessor).convertFromByteBuffer((ByteBuffer) buffer.mappedMemory.rewind(), targetArray);
+
+            int errCode = CL10.clEnqueueUnmapMemObject(
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
+                    buffer.mappedMemory,
+                    null,
+                    null
+            );
+
+            if (!OpenCLErrorUtils.isSuccess(errCode)) {
+                String message = String.format(
+                        "OpenCL read buffer failed of unmapping memory for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errCode));
+                logger.error(message);
+                throw new BufferOperationException(message, errCode);
+            }
+
+            return targetArray;
+
+        }
+    }
+
+    default byte[] readMapSyncByte(int offset, int len){
+        return readMapSyncByte(offset, len, null);
+    }
+
+    default byte[] readMapSyncByte(int len, ClEventList events){
+        return readMapSyncByte(0, len, events);
+    }
+
+    default byte[] readMapSyncByte(int len){
+        return readMapSyncByte(0, len, null);
+    }
+
 
     @SuppressWarnings("unchecked")
     default byte[] readNextSyncByte(int len, ClEventList events){
@@ -764,6 +1332,43 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
     default byte[] readNextSyncByte(){
         return readNextSyncByte(1, null);
     }
+
+
+    @SuppressWarnings("unchecked")
+    default byte[] readNextMapSyncByte(int len, ClEventList events){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        int offset = buffer.pointer;
+        int structureSize = dataProcessor.getSizeStruct();
+
+        if ((long)(offset + len) * structureSize  > (long)buffer.capacity * structureSize) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d by Byte, length=%d by elements, capacity=%d for buffer '%s'",
+                    offset, len, (int) Math.ceil((double)len / structureSize), buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        buffer.pointer += len;
+        return readMapSyncByte(offset, len, events);
+    }
+
+    default byte[] readNextMapSyncByte(ClEventList events){
+        return readNextMapSyncByte(1, events);
+    }
+
+    default byte[] readNextMapSyncByte(int len){
+        return readNextMapSyncByte(len, null);
+    }
+
+    default byte[] readNextMapSyncByte(){
+        return readNextMapSyncByte(1, null);
+    }
+
 
     @SuppressWarnings("unchecked")
     default void readSyncByte(int offset, ClEventList events, byte[] targetArray){
@@ -850,6 +1455,109 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
         readSyncByte(0, null, targetArray);
     }
 
+
+    @SuppressWarnings("unchecked")
+    default void readMapSyncByte(int offset, ClEventList events, byte[] targetArray){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        if(targetArray == null) {
+            String message = String.format(
+                    "The passed array for reading the buffer '%s', can`t be null.",
+                    buffer.getName());
+            logger.error(message);
+            throw new NullPointerException(message);
+        }
+
+        if(offset < 0) {
+            String message = String.format(
+                    "To read data from a buffer, the offset passed cannot be negative: offset=%d, for buffer '%s'",
+                    offset, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        int len = targetArray.length;
+
+        if ((long)offset * dataProcessor.getSizeStruct() + len > (long)buffer.capacity * dataProcessor.getSizeStruct()) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d by Byte, length=%d by elements, capacity=%d for buffer '%s'",
+                    offset, len, (int) Math.ceil((double)len / dataProcessor.getSizeStruct()), buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        if (len % dataProcessor.getSizeStruct() != 0) {
+            logger.warn("The size of the passed array ({}) for reading the buffer {} is not a multiple of the number of elements ({}).",
+                    len, buffer.getName(), dataProcessor.getSizeStruct());
+        }
+
+        try (MemoryStack stack = MemoryStack.stackPush()){
+
+            IntBuffer errorCode = stack.mallocInt(1);
+
+            buffer.mappedMemory = CL10.clEnqueueMapBuffer(
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
+                    true,
+                    CL10.CL_MAP_READ,
+                    (long) offset * dataProcessor.getSizeStruct(),
+                    len,
+                    events != null ? events.getEventList(stack) : null,
+                    null,
+                    errorCode,
+                    buffer.mappedMemory
+            );
+
+            if (events != null) {
+                events.releaseEvents();
+            }
+
+            if (!OpenCLErrorUtils.isSuccess(errorCode.get(0))) {
+                String message = String.format(
+                        "OpenCL read buffer failed of mapping memory for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode.get(0)));
+                logger.error(message);
+                throw new BufferOperationException(message, errorCode.get(0));
+            }
+
+            ((FromByteBuffer) dataProcessor).convertFromByteBuffer((ByteBuffer) buffer.mappedMemory.rewind(), targetArray);
+
+            int errCode = CL10.clEnqueueUnmapMemObject(
+                    buffer.context.getCommandQueue(),
+                    buffer.clMem,
+                    buffer.mappedMemory,
+                    null,
+                    null
+            );
+
+            if (!OpenCLErrorUtils.isSuccess(errCode)) {
+                String message = String.format(
+                        "OpenCL read buffer failed of unmapping memory for buffer '%s': error - %s",
+                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errCode));
+                logger.error(message);
+                throw new BufferOperationException(message, errCode);
+            }
+
+        }
+    }
+
+    default void readMapSyncByte(int offset, byte[] targetArray){
+        readMapSyncByte(offset, null, targetArray);
+    }
+
+    default void readMapSyncByte(ClEventList events, byte[] targetArray){
+        readMapSyncByte(0, events, targetArray);
+    }
+
+    default void readMapSyncByte(byte[] targetArray){
+        readMapSyncByte(0, null, targetArray);
+    }
+
+
     @SuppressWarnings("unchecked")
     default void readNextSyncByte(ClEventList events, byte[] targetArray){
         T buffer = (T) this;
@@ -876,5 +1584,34 @@ public interface ReadableGlobal<T extends CopyableGlobalBuffer & ReadableGlobal<
 
     default void readNextSyncByte(byte[] targetArray){
         readNextSyncByte(null, targetArray);
+    }
+
+
+    @SuppressWarnings("unchecked")
+    default void readNextMapSyncByte(ClEventList events, byte[] targetArray){
+        T buffer = (T) this;
+
+        buffer.checkNotClosed();
+
+        DataProcessor dataProcessor = buffer.dataProcessor;
+
+        int len = targetArray.length;
+        int offset = buffer.pointer;
+        int structureSize = dataProcessor.getSizeStruct();
+
+        if ((long)offset * structureSize+ len > (long)buffer.capacity * structureSize) {
+            String message = String.format(
+                    "Attempt to read outside buffer bounds: offset=%d, length=%d by Byte, length=%d by elements, capacity=%d for buffer '%s'",
+                    offset, len, (int) Math.ceil((double)len / structureSize), buffer.capacity, buffer.getName());
+            logger.error(message);
+            throw new IllegalArgumentException(message);
+        }
+
+        buffer.pointer += len / structureSize;
+        readMapSyncByte(offset, events, targetArray);
+    }
+
+    default void readNextMapSyncByte(byte[] targetArray){
+        readNextMapSyncByte(null, targetArray);
     }
 }

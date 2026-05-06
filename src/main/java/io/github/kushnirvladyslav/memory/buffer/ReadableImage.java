@@ -155,7 +155,7 @@ public interface ReadableImage <T extends CopyableImageBuffer & ReadableImage<T>
             if (!OpenCLErrorUtils.isSuccess(errorCode)) {
                 MemoryUtil.memFree(tempNativeBuffer);
 
-                customEvent.setComplete();
+                customEvent.setError(errorCode);
                 String message = String.format(
                         "OpenCL read buffer failed for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode));
