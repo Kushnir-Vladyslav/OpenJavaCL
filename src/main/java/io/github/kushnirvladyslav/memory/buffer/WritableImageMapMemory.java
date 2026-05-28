@@ -17,8 +17,7 @@
 package io.github.kushnirvladyslav.memory.buffer;
 
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
-import io.github.kushnirvladyslav.memory.data.FromByteBuffer;
-import io.github.kushnirvladyslav.memory.data.FromByteImageMapMemBuffer;
+import io.github.kushnirvladyslav.memory.data.ToByteImageMapMemBuffer;
 import io.github.kushnirvladyslav.memory.util.ImagePitches;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
 import io.github.kushnirvladyslav.util.clEvent.ClCustomEvent;
@@ -35,20 +34,20 @@ import java.nio.IntBuffer;
 import java.util.Collection;
 import java.util.Map;
 
-public interface ReadableImageMapMemory
-        <T extends CopyableImageBuffer & ReadableImageMapMemory<T>>
-        extends ReadableImage<T> {
-    Logger logger = LoggerFactory.getLogger(ReadableImageMapMemory.class);
+public interface WritableImageMapMemory
+        <T extends CopyableImageBuffer & WritableImageMapMemory<T>>
+        extends WritableImage<T>{
+    Logger logger = LoggerFactory.getLogger(WritableImageMapMemory.class);
 
     @SuppressWarnings("unchecked")
-    default ClEvent readMapAsync(CopyableImageBuffer.ImageRegion region, int rowPitch, int slicePitch, ClEventList events, Object targetArray) {
+    default ClEvent writeMapAsync(CopyableImageBuffer.ImageRegion region, int rowPitch, int slicePitch, ClEventList events, Object array) {
         T buffer = (T) this;
 
         buffer.checkNotClosed();
 
-        if (targetArray == null) {
+        if (array == null) {
             String message = String.format(
-                    "The passed array for reading the buffer '%s', can`t be null.",
+                    "The passed array for writing the buffer '%s', can`t be null.",
                     buffer.getName());
             logger.error(message);
             throw new NullPointerException(message);
@@ -56,7 +55,7 @@ public interface ReadableImageMapMemory
 
         if (region == null) {
             String message = String.format(
-                    "The region for reading the buffer '%s', can`t be null.",
+                    "The region for writing the buffer '%s', can`t be null.",
                     buffer.getName());
             logger.error(message);
             throw new NullPointerException(message);
@@ -64,7 +63,7 @@ public interface ReadableImageMapMemory
 
         if (region.buffer != this) {
             throw new IllegalArgumentException(String.format(
-                    "Region belongs to '%s', but reading called on '%s'.",
+                    "Region belongs to '%s', but writing called on '%s'.",
                     region.buffer.getName(), buffer.getName()));
         }
 
@@ -74,7 +73,7 @@ public interface ReadableImageMapMemory
 
         if (rowPitch < 0) {
             String message = String.format(
-                    "To read data from a buffer, the 'row pitch' cannot be negative: 'row pitch'=%d, for buffer '%s'",
+                    "To write data from a buffer, the 'row pitch' cannot be negative: 'row pitch'=%d, for buffer '%s'",
                     rowPitch, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -82,7 +81,7 @@ public interface ReadableImageMapMemory
 
         if (rowPitch > 0 && rowPitch < region.getRegionX() * pixelSize) {
             String message = String.format(
-                    "To read data from a buffer, the 'row pitch' cannot be less than region width: 'row pitch'=%d, width=%d for buffer '%s'",
+                    "To write data from a buffer, the 'row pitch' cannot be less than region width: 'row pitch'=%d, width=%d for buffer '%s'",
                     rowPitch, region.getRegionX() * pixelSize, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -92,7 +91,7 @@ public interface ReadableImageMapMemory
 
         if (slicePitch < 0) {
             String message = String.format(
-                    "To read data from a buffer, the 'slice pitch' cannot be negative: 'slice pitch'=%d, for buffer '%s'",
+                    "To write data from a buffer, the 'slice pitch' cannot be negative: 'slice pitch'=%d, for buffer '%s'",
                     slicePitch, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -100,7 +99,7 @@ public interface ReadableImageMapMemory
 
         if (slicePitch > 0 && slicePitch < region.getRegionY() * effectiveRowPitch) {
             String message = String.format(
-                    "To read data from a buffer, the 'slice pitch' cannot be less than region height: 'slice pitch'=%d, height=%d for buffer '%s'",
+                    "To write data from a buffer, the 'slice pitch' cannot be less than region height: 'slice pitch'=%d, height=%d for buffer '%s'",
                     slicePitch, region.getRegionY() * effectiveRowPitch, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -112,18 +111,18 @@ public interface ReadableImageMapMemory
 
         long dataLength = effectiveSlicePitch * region.getRegionZ();
 
-        if ((long) buffer.dataProcessor.getSizeArray(targetArray) * buffer.dataProcessor.getSizeStruct() < dataLength
-                && !(targetArray instanceof Collection || targetArray instanceof Map)) {
+        if ((long) buffer.dataProcessor.getSizeArray(array) * buffer.dataProcessor.getSizeStruct() < dataLength
+                && !(array instanceof Collection || array instanceof Map)) {
             String message = String.format(
-                    "The size of the data to be read exceeds the size of the buffer into which it must be written: 'data size'=%d, 'buffer size'=%d for buffer '%s'",
-                    dataLength, buffer.dataProcessor.getSizeArray(targetArray), buffer.getName());
+                    "The size of the data to be written is smaller than the size of the buffer into which it needs to be written: 'data size'=%d, 'buffer size'=%d for buffer '%s'",
+                    dataLength, buffer.dataProcessor.getSizeArray(array), buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
 
         if (dataLength > Integer.MAX_VALUE) {
             String message = String.format(
-                    "Read size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
+                    "Write size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
                     dataLength, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -148,7 +147,7 @@ public interface ReadableImageMapMemory
                     buffer.context.getCommandQueue(),
                     buffer.clMem,
                     false,
-                    CL10.CL_MAP_READ,
+                    CL10.CL_MAP_WRITE,
                     region.getOrigin(stack),
                     region.getRegion(stack),
                     row,
@@ -179,17 +178,18 @@ public interface ReadableImageMapMemory
             thisEvent.onComplete((long event, int status) -> {
                 try {
                     if (OpenCLErrorUtils.isSuccess(status)) {
-                        ((FromByteImageMapMemBuffer) buffer.dataProcessor)
-                                .convertFromByteBuffer(
+                        ((ToByteImageMapMemBuffer) buffer.dataProcessor)
+                                .convertToByteBuffer(
                                         mappedMemory,
                                         new ImagePitches(
                                                 region.region,
-                                                bufferRowPitch,
-                                                bufferSlicePitch,
                                                 rowPitch,
-                                                slicePitch
+                                                slicePitch,
+                                                bufferRowPitch,
+                                                bufferSlicePitch
                                         ),
-                                        targetArray);
+                                        array
+                                );
                         customEvent.setComplete();
                     } else {
                         customEvent.setError(status);
@@ -205,7 +205,7 @@ public interface ReadableImageMapMemory
 
                     if (!OpenCLErrorUtils.isSuccess(errCode)) {
                         String message = String.format(
-                                "OpenCL read image buffer failed of unmapping memory for buffer '%s': error - %s",
+                                "OpenCL write image buffer failed of unmapping memory for buffer '%s': error - %s",
                                 buffer.getName(), OpenCLErrorUtils.getCLErrorString(errCode));
                         logger.error(message);
                     }
@@ -217,14 +217,14 @@ public interface ReadableImageMapMemory
     }
 
     @SuppressWarnings("unchecked")
-    default void readMapSync(CopyableImageBuffer.ImageRegion region, int rowPitch, int slicePitch, ClEventList events, Object targetArray) {
+    default void writeMapSync(CopyableImageBuffer.ImageRegion region, int rowPitch, int slicePitch, ClEventList events, Object array) {
         T buffer = (T) this;
 
         buffer.checkNotClosed();
 
-        if (targetArray == null) {
+        if (array == null) {
             String message = String.format(
-                    "The passed array for reading the buffer '%s', can`t be null.",
+                    "The passed array for writing the buffer '%s', can`t be null.",
                     buffer.getName());
             logger.error(message);
             throw new NullPointerException(message);
@@ -232,7 +232,7 @@ public interface ReadableImageMapMemory
 
         if (region == null) {
             String message = String.format(
-                    "The region for reading the buffer '%s', can`t be null.",
+                    "The region for writing the buffer '%s', can`t be null.",
                     buffer.getName());
             logger.error(message);
             throw new NullPointerException(message);
@@ -240,7 +240,7 @@ public interface ReadableImageMapMemory
 
         if (region.buffer != this) {
             throw new IllegalArgumentException(String.format(
-                    "Region belongs to '%s', but reading called on '%s'.",
+                    "Region belongs to '%s', but writing called on '%s'.",
                     region.buffer.getName(), buffer.getName()));
         }
 
@@ -250,7 +250,7 @@ public interface ReadableImageMapMemory
 
         if (rowPitch < 0) {
             String message = String.format(
-                    "To read data from a buffer, the 'row pitch' cannot be negative: 'row pitch'=%d, for buffer '%s'",
+                    "To write data from a buffer, the 'row pitch' cannot be negative: 'row pitch'=%d, for buffer '%s'",
                     rowPitch, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -258,7 +258,7 @@ public interface ReadableImageMapMemory
 
         if (rowPitch > 0 && rowPitch < region.getRegionX() * pixelSize) {
             String message = String.format(
-                    "To read data from a buffer, the 'row pitch' cannot be less than region width: 'row pitch'=%d, width=%d for buffer '%s'",
+                    "To write data from a buffer, the 'row pitch' cannot be less than region width: 'row pitch'=%d, width=%d for buffer '%s'",
                     rowPitch, region.getRegionX() * pixelSize, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -268,7 +268,7 @@ public interface ReadableImageMapMemory
 
         if (slicePitch < 0) {
             String message = String.format(
-                    "To read data from a buffer, the 'slice pitch' cannot be negative: 'slice pitch'=%d, for buffer '%s'",
+                    "To write data from a buffer, the 'slice pitch' cannot be negative: 'slice pitch'=%d, for buffer '%s'",
                     slicePitch, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -276,7 +276,7 @@ public interface ReadableImageMapMemory
 
         if (slicePitch > 0 && slicePitch < region.getRegionY() * effectiveRowPitch) {
             String message = String.format(
-                    "To read data from a buffer, the 'slice pitch' cannot be less than region height: 'slice pitch'=%d, height=%d for buffer '%s'",
+                    "To write data from a buffer, the 'slice pitch' cannot be less than region height: 'slice pitch'=%d, height=%d for buffer '%s'",
                     slicePitch, region.getRegionY() * effectiveRowPitch, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -288,17 +288,18 @@ public interface ReadableImageMapMemory
 
         long dataLength = effectiveSlicePitch * region.getRegionZ();
 
-        if (buffer.dataProcessor.getSizeArray(targetArray) < dataLength && !(targetArray instanceof Collection || targetArray instanceof Map)) {
+        if ((long) buffer.dataProcessor.getSizeArray(array) * buffer.dataProcessor.getSizeStruct() < dataLength
+                && !(array instanceof Collection || array instanceof Map)) {
             String message = String.format(
-                    "The size of the data to be read exceeds the size of the buffer into which it must be written: 'data size'=%d, 'buffer size'=%d for buffer '%s'",
-                    dataLength, buffer.dataProcessor.getSizeArray(targetArray), buffer.getName());
+                    "The size of the data to be written is smaller than the size of the buffer into which it needs to be written: 'data size'=%d, 'buffer size'=%d for buffer '%s'",
+                    dataLength, buffer.dataProcessor.getSizeArray(array), buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
 
         if (dataLength > Integer.MAX_VALUE) {
             String message = String.format(
-                    "Read size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
+                    "Write size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
                     dataLength, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -321,7 +322,7 @@ public interface ReadableImageMapMemory
                     buffer.context.getCommandQueue(),
                     buffer.clMem,
                     true,
-                    CL10.CL_MAP_READ,
+                    CL10.CL_MAP_WRITE,
                     region.getOrigin(stack),
                     region.getRegion(stack),
                     row,
@@ -338,23 +339,27 @@ public interface ReadableImageMapMemory
 
             if (!OpenCLErrorUtils.isSuccess(errorCode.get(0))) {
                 String message = String.format(
-                        "OpenCL read buffer failed for buffer '%s': error - %s",
+                        "OpenCL write buffer failed for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode.get(0)));
                 logger.error(message);
                 throw new BufferOperationException(message, errorCode.get(0));
             }
 
-            ((FromByteImageMapMemBuffer) buffer.dataProcessor)
-                    .convertFromByteBuffer(
+            int bufferRowPitch = (int) row.get(0);
+            int bufferSlicePitch = (int) slice.get(0);
+            
+            ((ToByteImageMapMemBuffer) buffer.dataProcessor)
+                    .convertToByteBuffer(
                             mappedMemory,
                             new ImagePitches(
                                     region.region,
-                                    (int) row.get(0),
-                                    (int) slice.get(0),
                                     rowPitch,
-                                    slicePitch
+                                    slicePitch,
+                                    bufferRowPitch,
+                                    bufferSlicePitch
                             ),
-                            targetArray);
+                            array
+                    );
 
             int errCode = CL10.clEnqueueUnmapMemObject(
                     buffer.context.getCommandQueue(),
@@ -366,23 +371,30 @@ public interface ReadableImageMapMemory
 
             if (!OpenCLErrorUtils.isSuccess(errCode)) {
                 String message = String.format(
-                        "OpenCL read image buffer failed of unmapping memory for buffer '%s': error - %s",
+                        "OpenCL write image buffer failed of unmapping memory for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errCode));
                 logger.error(message);
             }
         }
     }
 
-
     @SuppressWarnings("unchecked")
-    default Object readMapSync(CopyableImageBuffer.ImageRegion region, int rowPitch, int slicePitch, ClEventList events) {
+    default ClEvent writeMapAsyncByte(CopyableImageBuffer.ImageRegion region, int rowPitch, int slicePitch, ClEventList events, byte[] array) {
         T buffer = (T) this;
 
         buffer.checkNotClosed();
 
+        if (array == null) {
+            String message = String.format(
+                    "The passed array for writing the buffer '%s', can`t be null.",
+                    buffer.getName());
+            logger.error(message);
+            throw new NullPointerException(message);
+        }
+
         if (region == null) {
             String message = String.format(
-                    "The region for reading the buffer '%s', can`t be null.",
+                    "The region for writing the buffer '%s', can`t be null.",
                     buffer.getName());
             logger.error(message);
             throw new NullPointerException(message);
@@ -390,7 +402,7 @@ public interface ReadableImageMapMemory
 
         if (region.buffer != this) {
             throw new IllegalArgumentException(String.format(
-                    "Region belongs to '%s', but reading called on '%s'.",
+                    "Region belongs to '%s', but writing called on '%s'.",
                     region.buffer.getName(), buffer.getName()));
         }
 
@@ -400,7 +412,7 @@ public interface ReadableImageMapMemory
 
         if (rowPitch < 0) {
             String message = String.format(
-                    "To read data from a buffer, the 'row pitch' cannot be negative: 'row pitch'=%d, for buffer '%s'",
+                    "To write data from a buffer, the 'row pitch' cannot be negative: 'row pitch'=%d, for buffer '%s'",
                     rowPitch, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -408,7 +420,7 @@ public interface ReadableImageMapMemory
 
         if (rowPitch > 0 && rowPitch < region.getRegionX() * pixelSize) {
             String message = String.format(
-                    "To read data from a buffer, the 'row pitch' cannot be less than region width: 'row pitch'=%d, width=%d for buffer '%s'",
+                    "To write data from a buffer, the 'row pitch' cannot be less than region width: 'row pitch'=%d, width=%d for buffer '%s'",
                     rowPitch, region.getRegionX() * pixelSize, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -418,7 +430,7 @@ public interface ReadableImageMapMemory
 
         if (slicePitch < 0) {
             String message = String.format(
-                    "To read data from a buffer, the 'slice pitch' cannot be negative: 'slice pitch'=%d, for buffer '%s'",
+                    "To write data from a buffer, the 'slice pitch' cannot be negative: 'slice pitch'=%d, for buffer '%s'",
                     slicePitch, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -426,7 +438,7 @@ public interface ReadableImageMapMemory
 
         if (slicePitch > 0 && slicePitch < region.getRegionY() * effectiveRowPitch) {
             String message = String.format(
-                    "To read data from a buffer, the 'slice pitch' cannot be less than region height: 'slice pitch'=%d, height=%d for buffer '%s'",
+                    "To write data from a buffer, the 'slice pitch' cannot be less than region height: 'slice pitch'=%d, height=%d for buffer '%s'",
                     slicePitch, region.getRegionY() * effectiveRowPitch, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -440,174 +452,20 @@ public interface ReadableImageMapMemory
 
         if (dataLength > Integer.MAX_VALUE) {
             String message = String.format(
-                    "Read size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
-                    dataLength, buffer.getName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-        if (pixelSize != buffer.dataProcessor.getSizeStruct()
-                && buffer.imageChannelDataType.getByteSize() != buffer.dataProcessor.getSizeStruct()) {
-            String message = String.format(
-                    "Pixel/channel size does not match data processor size: 'pixel size'=%d, 'channel size'=%d, 'data size'=%d for buffer '%s'",
-                    pixelSize, buffer.imageChannelDataType.getByteSize(), buffer.dataProcessor.getSizeStruct(), buffer.getName());
-            logger.warn(message);
-        }
-
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            PointerBuffer row = stack.mallocPointer(1);
-            PointerBuffer slice = stack.mallocPointer(1);
-            IntBuffer errorCode = stack.mallocInt(1);
-
-            Object targetArray = ((FromByteBuffer)buffer.dataProcessor)
-                    .createArr((int)dataLength / buffer.dataProcessor.getSizeStruct());
-
-            ByteBuffer mappedMemory = CL10.clEnqueueMapImage(
-                    buffer.context.getCommandQueue(),
-                    buffer.clMem,
-                    true,
-                    CL10.CL_MAP_READ,
-                    region.getOrigin(stack),
-                    region.getRegion(stack),
-                    row,
-                    slice,
-                    events != null ? events.getEventList(stack) : null,
-                    null,
-                    errorCode,
-                    null
-            );
-
-            if (events != null) {
-                events.releaseEvents();
-            }
-
-            if (!OpenCLErrorUtils.isSuccess(errorCode.get(0))) {
-                String message = String.format(
-                        "OpenCL read buffer failed for buffer '%s': error - %s",
-                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode.get(0)));
-                logger.error(message);
-                throw new BufferOperationException(message, errorCode.get(0));
-            }
-
-            ((FromByteImageMapMemBuffer) buffer.dataProcessor)
-                    .convertFromByteBuffer(
-                            mappedMemory,
-                            new ImagePitches(
-                                    region.region,
-                                    (int) row.get(0),
-                                    (int) slice.get(0),
-                                    rowPitch,
-                                    slicePitch
-                            ),
-                            targetArray);
-
-            int errCode = CL10.clEnqueueUnmapMemObject(
-                    buffer.context.getCommandQueue(),
-                    buffer.clMem,
-                    mappedMemory,
-                    null,
-                    null
-            );
-
-            if (!OpenCLErrorUtils.isSuccess(errCode)) {
-                String message = String.format(
-                        "OpenCL read image buffer failed of unmapping memory for buffer '%s': error - %s",
-                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errCode));
-                logger.error(message);
-            }
-
-            return targetArray;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    default ClEvent readMapAsyncByte(CopyableImageBuffer.ImageRegion region, int rowPitch, int slicePitch, ClEventList events, byte[] targetArray) {
-        T buffer = (T) this;
-
-        buffer.checkNotClosed();
-
-        if (targetArray == null) {
-            String message = String.format(
-                    "The passed array for reading the buffer '%s', can`t be null.",
-                    buffer.getName());
-            logger.error(message);
-            throw new NullPointerException(message);
-        }
-
-        if (region == null) {
-            String message = String.format(
-                    "The region for reading the buffer '%s', can`t be null.",
-                    buffer.getName());
-            logger.error(message);
-            throw new NullPointerException(message);
-        }
-
-        if (region.buffer != this) {
-            throw new IllegalArgumentException(String.format(
-                    "Region belongs to '%s', but reading called on '%s'.",
-                    region.buffer.getName(), buffer.getName()));
-        }
-
-        buffer.validateSrc(region);
-
-        int pixelSize = buffer.imageChannelOrder.getNumOfChannel() * buffer.imageChannelDataType.getByteSize();
-
-        if (rowPitch < 0) {
-            String message = String.format(
-                    "To read data from a buffer, the 'row pitch' cannot be negative: 'row pitch'=%d, for buffer '%s'",
-                    rowPitch, buffer.getName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-        if (rowPitch > 0 && rowPitch < region.getRegionX() * pixelSize) {
-            String message = String.format(
-                    "To read data from a buffer, the 'row pitch' cannot be less than region width: 'row pitch'=%d, width=%d for buffer '%s'",
-                    rowPitch, region.getRegionX() * pixelSize, buffer.getName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-        long effectiveRowPitch = rowPitch == 0 ? (long) region.getRegionX() * pixelSize : rowPitch;
-
-        if (slicePitch < 0) {
-            String message = String.format(
-                    "To read data from a buffer, the 'slice pitch' cannot be negative: 'slice pitch'=%d, for buffer '%s'",
-                    slicePitch, buffer.getName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-        if (slicePitch > 0 && slicePitch < region.getRegionY() * effectiveRowPitch) {
-            String message = String.format(
-                    "To read data from a buffer, the 'slice pitch' cannot be less than region height: 'slice pitch'=%d, height=%d for buffer '%s'",
-                    slicePitch, region.getRegionY() * effectiveRowPitch, buffer.getName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-
-        long effectiveSlicePitch = slicePitch == 0 ? region.getRegionY() * effectiveRowPitch : slicePitch;
-
-
-        long dataLength = effectiveSlicePitch * region.getRegionZ();
-
-        if (dataLength > Integer.MAX_VALUE) {
-            String message = String.format(
-                    "Read size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
+                    "Write size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
                     dataLength, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
         
-        if (targetArray.length < dataLength) {
+        if (array.length < dataLength) {
             String message = String.format(
-                    "The size of the data to be read exceeds the size of the buffer into which it must be written: 'data size'=%d, 'buffer size'=%d for buffer '%s'",
-                    dataLength, buffer.dataProcessor.getSizeArray(targetArray), buffer.getName());
+                    "The size of the data to be written is smaller than the size of the buffer into which it needs to be written: 'data size'=%d, 'buffer size'=%d for buffer '%s'",
+                    dataLength, buffer.dataProcessor.getSizeArray(array), buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
-
+        
         if (pixelSize != buffer.dataProcessor.getSizeStruct()
                 && buffer.imageChannelDataType.getByteSize() != buffer.dataProcessor.getSizeStruct()) {
             String message = String.format(
@@ -627,7 +485,7 @@ public interface ReadableImageMapMemory
                     buffer.context.getCommandQueue(),
                     buffer.clMem,
                     false,
-                    CL10.CL_MAP_READ,
+                    CL10.CL_MAP_WRITE,
                     region.getOrigin(stack),
                     region.getRegion(stack),
                     row,
@@ -659,18 +517,18 @@ public interface ReadableImageMapMemory
                 try {
                     if (OpenCLErrorUtils.isSuccess(status)) {
                         if(bufferRowPitch == 0 && bufferSlicePitch == 0 && rowPitch == 0 && slicePitch == 0){
-                            mappedMemory.get(targetArray);
+                            mappedMemory.put(array);
                         } else {
                             int structureSize = buffer.dataProcessor.getSizeStruct();
 
-                            int effectiveReadRowPitch = (bufferRowPitch == 0) ?
-                                    region.getRegionX() * structureSize : bufferRowPitch;
-                            int effectiveReadSlicePitch = (bufferSlicePitch == 0) ?
-                                    region.getRegionY() * effectiveReadRowPitch : bufferSlicePitch;
-                            int effectiveWriteRowPitch = (rowPitch == 0) ?
+                            int effectiveReadRowPitch = (rowPitch == 0) ?
                                     region.getRegionX() * structureSize : rowPitch;
-                            int effectiveWriteSlicePitch = (slicePitch == 0) ?
-                                    region.getRegionY() * effectiveWriteRowPitch: slicePitch;
+                            int effectiveReadSlicePitch = (slicePitch == 0) ?
+                                    region.getRegionY() * effectiveReadRowPitch : slicePitch;
+                            int effectiveWriteRowPitch = (bufferRowPitch == 0) ?
+                                    region.getRegionX() * structureSize : bufferRowPitch;
+                            int effectiveWriteSlicePitch = (bufferSlicePitch == 0) ?
+                                    region.getRegionY() * effectiveWriteRowPitch: bufferSlicePitch;
 
                             for (int z = 0; z < region.getRegionZ(); z++){
                                 int readSlicePitch = effectiveReadSlicePitch * z;
@@ -679,10 +537,10 @@ public interface ReadableImageMapMemory
                                     int readRowPitch = effectiveReadRowPitch * y;
                                     int writeRowPitch = effectiveWriteRowPitch * y;
 
-                                    mappedMemory.position(readSlicePitch + readRowPitch);
-                                    mappedMemory.get(
-                                            targetArray,
-                                            writeSlicePitch + writeRowPitch,
+                                    mappedMemory.position(writeSlicePitch + writeRowPitch);
+                                    mappedMemory.put(
+                                            array,
+                                            readSlicePitch + readRowPitch,
                                             region.getRegionX() * structureSize
                                     );
                                 }
@@ -703,7 +561,7 @@ public interface ReadableImageMapMemory
 
                     if (!OpenCLErrorUtils.isSuccess(errCode)) {
                         String message = String.format(
-                                "OpenCL read image buffer failed of unmapping memory for buffer '%s': error - %s",
+                                "OpenCL write image buffer failed of unmapping memory for buffer '%s': error - %s",
                                 buffer.getName(), OpenCLErrorUtils.getCLErrorString(errCode));
                         logger.error(message);
                     }
@@ -715,14 +573,14 @@ public interface ReadableImageMapMemory
     }
 
     @SuppressWarnings("unchecked")
-    default void readMapSyncByte(CopyableImageBuffer.ImageRegion region, int rowPitch, int slicePitch, ClEventList events, byte[] targetArray) {
+    default void writeMapSyncByte(CopyableImageBuffer.ImageRegion region, int rowPitch, int slicePitch, ClEventList events, byte[] array) {
         T buffer = (T) this;
 
         buffer.checkNotClosed();
 
-        if (targetArray == null) {
+        if (array == null) {
             String message = String.format(
-                    "The passed array for reading the buffer '%s', can`t be null.",
+                    "The passed array for writing the buffer '%s', can`t be null.",
                     buffer.getName());
             logger.error(message);
             throw new NullPointerException(message);
@@ -730,7 +588,7 @@ public interface ReadableImageMapMemory
 
         if (region == null) {
             String message = String.format(
-                    "The region for reading the buffer '%s', can`t be null.",
+                    "The region for writing the buffer '%s', can`t be null.",
                     buffer.getName());
             logger.error(message);
             throw new NullPointerException(message);
@@ -738,7 +596,7 @@ public interface ReadableImageMapMemory
 
         if (region.buffer != this) {
             throw new IllegalArgumentException(String.format(
-                    "Region belongs to '%s', but reading called on '%s'.",
+                    "Region belongs to '%s', but writing called on '%s'.",
                     region.buffer.getName(), buffer.getName()));
         }
 
@@ -748,7 +606,7 @@ public interface ReadableImageMapMemory
 
         if (rowPitch < 0) {
             String message = String.format(
-                    "To read data from a buffer, the 'row pitch' cannot be negative: 'row pitch'=%d, for buffer '%s'",
+                    "To write data from a buffer, the 'row pitch' cannot be negative: 'row pitch'=%d, for buffer '%s'",
                     rowPitch, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -756,7 +614,7 @@ public interface ReadableImageMapMemory
 
         if (rowPitch > 0 && rowPitch < region.getRegionX() * pixelSize) {
             String message = String.format(
-                    "To read data from a buffer, the 'row pitch' cannot be less than region width: 'row pitch'=%d, width=%d for buffer '%s'",
+                    "To write data from a buffer, the 'row pitch' cannot be less than region width: 'row pitch'=%d, width=%d for buffer '%s'",
                     rowPitch, region.getRegionX() * pixelSize, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -766,7 +624,7 @@ public interface ReadableImageMapMemory
 
         if (slicePitch < 0) {
             String message = String.format(
-                    "To read data from a buffer, the 'slice pitch' cannot be negative: 'slice pitch'=%d, for buffer '%s'",
+                    "To write data from a buffer, the 'slice pitch' cannot be negative: 'slice pitch'=%d, for buffer '%s'",
                     slicePitch, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -774,7 +632,7 @@ public interface ReadableImageMapMemory
 
         if (slicePitch > 0 && slicePitch < region.getRegionY() * effectiveRowPitch) {
             String message = String.format(
-                    "To read data from a buffer, the 'slice pitch' cannot be less than region height: 'slice pitch'=%d, height=%d for buffer '%s'",
+                    "To write data from a buffer, the 'slice pitch' cannot be less than region height: 'slice pitch'=%d, height=%d for buffer '%s'",
                     slicePitch, region.getRegionY() * effectiveRowPitch, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
@@ -788,16 +646,16 @@ public interface ReadableImageMapMemory
 
         if (dataLength > Integer.MAX_VALUE) {
             String message = String.format(
-                    "Read size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
+                    "Write size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
                     dataLength, buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
         
-        if (targetArray.length < dataLength) {
+        if (array.length < dataLength) {
             String message = String.format(
-                    "The size of the data to be read exceeds the size of the buffer into which it must be written: 'data size'=%d, 'buffer size'=%d for buffer '%s'",
-                    dataLength, buffer.dataProcessor.getSizeArray(targetArray), buffer.getName());
+                    "The size of the data to be written is smaller than the size of the buffer into which it needs to be written: 'data size'=%d, 'buffer size'=%d for buffer '%s'",
+                    dataLength, buffer.dataProcessor.getSizeArray(array), buffer.getName());
             logger.error(message);
             throw new IllegalArgumentException(message);
         }
@@ -819,7 +677,7 @@ public interface ReadableImageMapMemory
                     buffer.context.getCommandQueue(),
                     buffer.clMem,
                     true,
-                    CL10.CL_MAP_READ,
+                    CL10.CL_MAP_WRITE,
                     region.getOrigin(stack),
                     region.getRegion(stack),
                     row,
@@ -836,7 +694,7 @@ public interface ReadableImageMapMemory
 
             if (!OpenCLErrorUtils.isSuccess(errorCode.get(0))) {
                 String message = String.format(
-                        "OpenCL read buffer failed for buffer '%s': error - %s",
+                        "OpenCL write buffer failed for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode.get(0)));
                 logger.error(message);
                 throw new BufferOperationException(message, errorCode.get(0));
@@ -846,18 +704,18 @@ public interface ReadableImageMapMemory
             int bufferSlicePitch = (int) slice.get(0);
 
             if(bufferRowPitch == 0 && bufferSlicePitch == 0 && rowPitch == 0 && slicePitch == 0){
-                mappedMemory.get(targetArray);
+                mappedMemory.put(array);
             } else {
                 int structureSize = buffer.dataProcessor.getSizeStruct();
 
-                int effectiveReadRowPitch = (bufferRowPitch == 0) ?
-                        region.getRegionX() * structureSize : bufferRowPitch;
-                int effectiveReadSlicePitch = (bufferSlicePitch == 0) ?
-                        region.getRegionY() * effectiveReadRowPitch : bufferSlicePitch;
-                int effectiveWriteRowPitch = (rowPitch == 0) ?
+                int effectiveReadRowPitch = (rowPitch == 0) ?
                         region.getRegionX() * structureSize : rowPitch;
-                int effectiveWriteSlicePitch = (slicePitch == 0) ?
-                        region.getRegionY() * effectiveWriteRowPitch: slicePitch;
+                int effectiveReadSlicePitch = (slicePitch == 0) ?
+                        region.getRegionY() * effectiveReadRowPitch : slicePitch;
+                int effectiveWriteRowPitch = (bufferRowPitch == 0) ?
+                        region.getRegionX() * structureSize : bufferRowPitch;
+                int effectiveWriteSlicePitch = (bufferSlicePitch == 0) ?
+                        region.getRegionY() * effectiveWriteRowPitch: bufferSlicePitch;
 
                 for (int z = 0; z < region.getRegionZ(); z++){
                     int readSlicePitch = effectiveReadSlicePitch * z;
@@ -866,10 +724,10 @@ public interface ReadableImageMapMemory
                         int readRowPitch = effectiveReadRowPitch * y;
                         int writeRowPitch = effectiveWriteRowPitch * y;
 
-                        mappedMemory.position(readSlicePitch + readRowPitch);
-                        mappedMemory.get(
-                                targetArray,
-                                writeSlicePitch + writeRowPitch,
+                        mappedMemory.position(writeSlicePitch + writeRowPitch);
+                        mappedMemory.put(
+                                array,
+                                readSlicePitch + readRowPitch,
                                 region.getRegionX() * structureSize
                         );
                     }
@@ -886,177 +744,10 @@ public interface ReadableImageMapMemory
 
             if (!OpenCLErrorUtils.isSuccess(errCode)) {
                 String message = String.format(
-                        "OpenCL read image buffer failed of unmapping memory for buffer '%s': error - %s",
+                        "OpenCL write image buffer failed of unmapping memory for buffer '%s': error - %s",
                         buffer.getName(), OpenCLErrorUtils.getCLErrorString(errCode));
                 logger.error(message);
             }
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    default byte[] readMapSyncByte(CopyableImageBuffer.ImageRegion region, int rowPitch, int slicePitch, ClEventList events) {
-        T buffer = (T) this;
-
-        buffer.checkNotClosed();
-
-        if (region == null) {
-            String message = String.format(
-                    "The region for reading the buffer '%s', can`t be null.",
-                    buffer.getName());
-            logger.error(message);
-            throw new NullPointerException(message);
-        }
-
-        if (region.buffer != this) {
-            throw new IllegalArgumentException(String.format(
-                    "Region belongs to '%s', but reading called on '%s'.",
-                    region.buffer.getName(), buffer.getName()));
-        }
-
-        buffer.validateSrc(region);
-
-        int pixelSize = buffer.imageChannelOrder.getNumOfChannel() * buffer.imageChannelDataType.getByteSize();
-
-        if (rowPitch < 0) {
-            String message = String.format(
-                    "To read data from a buffer, the 'row pitch' cannot be negative: 'row pitch'=%d, for buffer '%s'",
-                    rowPitch, buffer.getName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-        if (rowPitch > 0 && rowPitch < region.getRegionX() * pixelSize) {
-            String message = String.format(
-                    "To read data from a buffer, the 'row pitch' cannot be less than region width: 'row pitch'=%d, width=%d for buffer '%s'",
-                    rowPitch, region.getRegionX() * pixelSize, buffer.getName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-        long effectiveRowPitch = rowPitch == 0 ? (long) region.getRegionX() * pixelSize : rowPitch;
-
-        if (slicePitch < 0) {
-            String message = String.format(
-                    "To read data from a buffer, the 'slice pitch' cannot be negative: 'slice pitch'=%d, for buffer '%s'",
-                    slicePitch, buffer.getName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-        if (slicePitch > 0 && slicePitch < region.getRegionY() * effectiveRowPitch) {
-            String message = String.format(
-                    "To read data from a buffer, the 'slice pitch' cannot be less than region height: 'slice pitch'=%d, height=%d for buffer '%s'",
-                    slicePitch, region.getRegionY() * effectiveRowPitch, buffer.getName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-
-        long effectiveSlicePitch = slicePitch == 0 ? region.getRegionY() * effectiveRowPitch : slicePitch;
-
-
-        long dataLength = effectiveSlicePitch * region.getRegionZ();
-
-        if (dataLength > Integer.MAX_VALUE) {
-            String message = String.format(
-                    "Read size exceeds byte[] limit (2GB). Try to read %d byte from buffer '%s'",
-                    dataLength, buffer.getName());
-            logger.error(message);
-            throw new IllegalArgumentException(message);
-        }
-
-        if (pixelSize != buffer.dataProcessor.getSizeStruct()
-                && buffer.imageChannelDataType.getByteSize() != buffer.dataProcessor.getSizeStruct()) {
-            String message = String.format(
-                    "Pixel/channel size does not match data processor size: 'pixel size'=%d, 'channel size'=%d, 'data size'=%d for buffer '%s'",
-                    pixelSize, buffer.imageChannelDataType.getByteSize(), buffer.dataProcessor.getSizeStruct(), buffer.getName());
-            logger.warn(message);
-        }
-
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            PointerBuffer row = stack.mallocPointer(1);
-            PointerBuffer slice = stack.mallocPointer(1);
-            IntBuffer errorCode = stack.mallocInt(1);
-
-            byte[] targetArray = new byte[(int)dataLength];
-
-            ByteBuffer mappedMemory = CL10.clEnqueueMapImage(
-                    buffer.context.getCommandQueue(),
-                    buffer.clMem,
-                    true,
-                    CL10.CL_MAP_READ,
-                    region.getOrigin(stack),
-                    region.getRegion(stack),
-                    row,
-                    slice,
-                    events != null ? events.getEventList(stack) : null,
-                    null,
-                    errorCode,
-                    null
-            );
-
-            if (events != null) {
-                events.releaseEvents();
-            }
-
-            if (!OpenCLErrorUtils.isSuccess(errorCode.get(0))) {
-                String message = String.format(
-                        "OpenCL read buffer failed for buffer '%s': error - %s",
-                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errorCode.get(0)));
-                logger.error(message);
-                throw new BufferOperationException(message, errorCode.get(0));
-            }
-
-            int bufferRowPitch = (int) row.get(0);
-            int bufferSlicePitch = (int) slice.get(0);
-
-            if(bufferRowPitch == 0 && bufferSlicePitch == 0 && rowPitch == 0 && slicePitch == 0){
-                mappedMemory.get(targetArray);
-            } else {
-                int structureSize = buffer.dataProcessor.getSizeStruct();
-
-                int effectiveReadRowPitch = (bufferRowPitch == 0) ?
-                        region.getRegionX() * structureSize : bufferRowPitch;
-                int effectiveReadSlicePitch = (bufferSlicePitch == 0) ?
-                        region.getRegionY() * effectiveReadRowPitch : bufferSlicePitch;
-                int effectiveWriteRowPitch = (rowPitch == 0) ?
-                        region.getRegionX() * structureSize : rowPitch;
-                int effectiveWriteSlicePitch = (slicePitch == 0) ?
-                        region.getRegionY() * effectiveWriteRowPitch: slicePitch;
-
-                for (int z = 0; z < region.getRegionZ(); z++){
-                    int readSlicePitch = effectiveReadSlicePitch * z;
-                    int writeSlicePitch = effectiveWriteSlicePitch * z;
-                    for(int y = 0; y < region.getRegionY(); y++){
-                        int readRowPitch = effectiveReadRowPitch * y;
-                        int writeRowPitch = effectiveWriteRowPitch * y;
-
-                        mappedMemory.position(readSlicePitch + readRowPitch);
-                        mappedMemory.get(
-                                targetArray,
-                                writeSlicePitch + writeRowPitch,
-                                region.getRegionX() * structureSize
-                        );
-                    }
-                }
-            }
-
-            int errCode = CL10.clEnqueueUnmapMemObject(
-                    buffer.context.getCommandQueue(),
-                    buffer.clMem,
-                    mappedMemory,
-                    null,
-                    null
-            );
-
-            if (!OpenCLErrorUtils.isSuccess(errCode)) {
-                String message = String.format(
-                        "OpenCL read image buffer failed of unmapping memory for buffer '%s': error - %s",
-                        buffer.getName(), OpenCLErrorUtils.getCLErrorString(errCode));
-                logger.error(message);
-            }
-
-            return targetArray;
         }
     }
 }

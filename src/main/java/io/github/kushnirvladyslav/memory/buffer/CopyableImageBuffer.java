@@ -19,7 +19,6 @@ package io.github.kushnirvladyslav.memory.buffer;
 import io.github.kushnirvladyslav.exceptions.BufferIndexOutOfBoundsException;
 import io.github.kushnirvladyslav.exceptions.BufferOperationException;
 import io.github.kushnirvladyslav.memory.util.DeviceMemoryAccess;
-import io.github.kushnirvladyslav.memory.util.Region;
 import io.github.kushnirvladyslav.util.OpenCLErrorUtils;
 import io.github.kushnirvladyslav.util.clEvent.ClCustomEvent;
 import io.github.kushnirvladyslav.util.clEvent.ClEvent;

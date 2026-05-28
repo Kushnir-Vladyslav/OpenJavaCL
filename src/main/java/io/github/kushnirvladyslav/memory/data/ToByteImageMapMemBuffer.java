@@ -16,8 +16,10 @@
 
 package io.github.kushnirvladyslav.memory.data;
 
+import io.github.kushnirvladyslav.memory.util.ImagePitches;
+
 import java.nio.ByteBuffer;
 
 public interface ToByteImageMapMemBuffer extends ToByteBuffer{
-    void convertToByteBuffer(ByteBuffer buffer, int rowPitch, int slicePitch, Object source);
+    void convertToByteBuffer(ByteBuffer buffer, ImagePitches pitches, Object source);
 }
