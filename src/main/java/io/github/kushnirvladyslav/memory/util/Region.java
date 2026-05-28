@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-package io.github.kushnirvladyslav.memory.data;
+package io.github.kushnirvladyslav.memory.util;
 
-import io.github.kushnirvladyslav.memory.util.ImagePitches;
-import io.github.kushnirvladyslav.memory.util.Region;
-
-import java.nio.ByteBuffer;
-
-public interface FromByteImageMapMemBuffer extends FromByteBuffer {
-    void convertFromByteBuffer (ByteBuffer buffer, ImagePitches pitches, Object target);
+public interface Region {
+    int getRegionX();
+    int getRegionY();
+    int getRegionZ();
 }
